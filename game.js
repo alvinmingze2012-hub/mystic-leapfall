@@ -141,13 +141,11 @@ function resetGame() {
     player.grounded = false;
     player.canDoubleJump = true;
     player.invincible = false;
+    player.hasShield = false;
     
     health = 3;
     score = 0;
     levelComplete = false;
-    
-    // Reset collectibles
-    collectibles.forEach(c => c.collected = false);
     
     // Reset powerups
     powerups.doubleJump = false;
@@ -155,6 +153,7 @@ function resetGame() {
     powerups.shield = false;
     
     updateHUD();
+    updatePowerupIcons();
     
     // Start timer
     startTime = Date.now();
@@ -260,6 +259,9 @@ function loadLevelData(level) {
             document.getElementById('levelNameDisplay').textContent = 'Lava Depths';
             break;
     }
+    
+    // Reset collectibles collected state
+    collectibles.forEach(c => c.collected = false);
 }
 
 function stopGame() {
@@ -281,6 +283,7 @@ function resumeGame() {
 function restartLevel() {
     document.getElementById('pauseMenu').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
+    document.getElementById('levelComplete').classList.add('hidden');
     resetGame();
     loadLevelData(currentLevel);
 }
@@ -460,6 +463,7 @@ function update() {
                 enemies = enemies.filter(e => e !== enemy);
                 player.velocityY = player.jumpPower / 2;
                 score += 100;
+                updateHUD();
                 playSound('powerupSound');
             } else {
                 // Enemy hit player
@@ -494,6 +498,7 @@ function update() {
             
             item.collected = true;
             score += 50;
+            updateHUD();
             playSound('collectSound');
             
             // Apply powerup
@@ -508,7 +513,6 @@ function update() {
             }
             
             updatePowerupIcons();
-            updateHUD();
         }
     }
     
@@ -707,6 +711,7 @@ function completeLevel() {
     
     // Bonus for collectibles
     score += collectiblesCount * 100;
+    updateHUD();
 }
 
 function gameOver() {
@@ -721,7 +726,9 @@ function playSound(soundId) {
     let sound = document.getElementById(soundId);
     if (sound) {
         sound.currentTime = 0;
-        sound.play().catch(e => console.log('Audio play failed:', e));
+        sound.play().catch(e => {
+            // Silently ignore - audio files not found
+        });
     }
 }
 
@@ -739,8 +746,4 @@ function updateMusicVolume(e) {
     let volume = e.target.value / 100;
     document.getElementById('musicValue').textContent = e.target.value + '%';
     document.getElementById('bgMusic').volume = volume;
-    
-    if (volume > 0 && !document.getElementById('bgMusic').paused) {
-        document.getElementById('bgMusic').play().catch(e => console.log('Music play failed:', e));
-    }
 }
