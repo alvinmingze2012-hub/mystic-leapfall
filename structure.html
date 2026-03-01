@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystic Leapfall - Enchanted Platformer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Main Menu -->
+        <div id="mainMenu" class="menu active">
+            <h1 class="game-title">✨ MYSTIC LEAPFALL ✨</h1>
+            <div class="menu-buttons">
+                <button class="menu-btn" onclick="startGame()">Start Journey</button>
+                <button class="menu-btn" onclick="showLevelSelect()">Select Realm</button>
+                <button class="menu-btn" onclick="showInstructions()">Ancient Scrolls</button>
+                <button class="menu-btn" onclick="showSettings()">Mystic Settings</button>
+            </div>
+            <div class="menu-footer">Press ESC to pause • ⬆️⬇️⬅️➡️ to navigate</div>
+        </div>
+
+        <!-- Level Selection Screen -->
+        <div id="levelSelect" class="menu">
+            <h2>Choose Your Realm</h2>
+            <div class="level-grid">
+                <div class="level-card" onclick="loadLevel(1)">
+                    <div class="level-preview forest"></div>
+                    <h3>Enchanted Forest</h3>
+                    <p>Begin your journey through mystical woods</p>
+                    <span class="difficulty easy">🌿 Novice</span>
+                </div>
+                <div class="level-card" onclick="loadLevel(2)">
+                    <div class="level-preview crystals"></div>
+                    <h3>Crystal Caverns</h3>
+                    <p>Navigate glowing underground passages</p>
+                    <span class="difficulty medium">💎 Intermediate</span>
+                </div>
+                <div class="level-card" onclick="loadLevel(3)">
+                    <div class="level-preview sky"></div>
+                    <h3>Sky Fortress</h3>
+                    <p>Leap across floating islands</p>
+                    <span class="difficulty medium">☁️ Advanced</span>
+                </div>
+                <div class="level-card" onclick="loadLevel(4)">
+                    <div class="level-preview lava"></div>
+                    <h3>Lava Depths</h3>
+                    <p>Survive the burning core</p>
+                    <span class="difficulty hard">🔥 Master</span>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showMainMenu()">← Back to Realm Gate</button>
+        </div>
+
+        <!-- Instructions Screen -->
+        <div id="instructions" class="menu">
+            <h2>Ancient Scrolls 📜</h2>
+            <div class="instructions-content">
+                <div class="control-section">
+                    <h3>🕹️ Sacred Controls</h3>
+                    <div class="control-grid">
+                        <div class="control-item">
+                            <span class="key">A / ←</span>
+                            <span>Move Left</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">D / →</span>
+                            <span>Move Right</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">SPACE</span>
+                            <span>Jump / Double Jump</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">SHIFT</span>
+                            <span>Dash Boost</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Q</span>
+                            <span>Magic Shield</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">ESC</span>
+                            <span>Pause Game</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="powerups-section">
+                    <h3>✨ Mystic Powers</h3>
+                    <div class="powerup-grid">
+                        <div class="powerup-item">
+                            <span class="powerup-icon">🦶</span>
+                            <span>Double Jump: Leap twice in air</span>
+                        </div>
+                        <div class="powerup-item">
+                            <span class="powerup-icon">💨</span>
+                            <span>Dash Boost: Quick forward burst</span>
+                        </div>
+                        <div class="powerup-item">
+                            <span class="powerup-icon">🛡️</span>
+                            <span>Magic Shield: Temporary invincibility</span>
+                        </div>
+                        <div class="powerup-item">
+                            <span class="powerup-icon">⭐</span>
+                            <span>Star Coins: Unlock secret paths</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings" class="menu">
+            <h2>Mystic Settings ⚙️</h2>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>Sound Effects</label>
+                    <input type="range" id="sfxVolume" min="0" max="100" value="70">
+                    <span id="sfxValue">70%</span>
+                </div>
+                <div class="setting-item">
+                    <label>Music Volume</label>
+                    <input type="range" id="musicVolume" min="0" max="100" value="50">
+                    <span id="musicValue">50%</span>
+                </div>
+                <div class="setting-item">
+                    <label>Particle Effects</label>
+                    <select id="particleQuality">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Difficulty</label>
+                    <select id="difficulty">
+                        <option value="easy">Easy (Novice)</option>
+                        <option value="medium" selected>Medium (Adventurer)</option>
+                        <option value="hard">Hard (Master)</option>
+                    </select>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showMainMenu()">← Back</button>
+        </div>
+
+        <!-- Game HUD and Canvas -->
+        <div id="gameScreen" class="game-screen hidden">
+            <!-- HUD - Heads Up Display -->
+            <div class="game-hud">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <span class="hud-icon">❤️</span>
+                        <span id="healthDisplay">3</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-icon">⭐</span>
+                        <span id="scoreDisplay">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-icon">⏱️</span>
+                        <span id="timerDisplay">00:00</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <span id="levelNameDisplay">Enchanted Forest</span>
+                </div>
+                <div class="hud-right">
+                    <div class="powerup-indicator" id="doubleJumpIcon" title="Double Jump Available">🦶</div>
+                    <div class="powerup-indicator" id="dashIcon" title="Dash Available">💨</div>
+                    <div class="powerup-indicator" id="shieldIcon" title="Shield Available">🛡️</div>
+                </div>
+            </div>
+
+            <!-- Game Canvas -->
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+            <!-- Pause Menu -->
+            <div id="pauseMenu" class="pause-menu hidden">
+                <h2>Game Paused ⏸️</h2>
+                <div class="pause-buttons">
+                    <button onclick="resumeGame()">Resume Journey</button>
+                    <button onclick="restartLevel()">Restart Level</button>
+                    <button onclick="showMainMenu()">Return to Realm Gate</button>
+                </div>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="gameOver" class="game-over hidden">
+                <h2>✨ Game Over ✨</h2>
+                <p id="finalScore">Score: 0</p>
+                <p id="finalTime">Time: 00:00</p>
+                <div class="gameover-buttons">
+                    <button onclick="restartLevel()">Try Again</button>
+                    <button onclick="showLevelSelect()">Choose Realm</button>
+                </div>
+            </div>
+
+            <!-- Level Complete Screen -->
+            <div id="levelComplete" class="level-complete hidden">
+                <h2>✨ Level Complete! ✨</h2>
+                <p id="levelScore">Score: 0</p>
+                <p id="levelTime">Time: 00:00</p>
+                <p id="collectiblesFound">Collectibles: 0/10</p>
+                <div class="complete-buttons">
+                    <button onclick="nextLevel()">Next Realm</button>
+                    <button onclick="showLevelSelect()">Realm Selection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="bgMusic" loop preload="auto">
+        <source src="assets/music/enchanted-forest.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="jumpSound" preload="auto">
+        <source src="assets/sounds/jump.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="collectSound" preload="auto">
+        <source src="assets/sounds/collect.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="damageSound" preload="auto">
+        <source src="assets/sounds/damage.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="powerupSound" preload="auto">
+        <source src="assets/sounds/powerup.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="game.js"></script>
+</body>
+</html>
