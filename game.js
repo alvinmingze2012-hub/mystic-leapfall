@@ -86,9 +86,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Level selection cards
     setupLevelSelection();
     
+    // Game over buttons
+    setupGameButtons();
+    
     // Start with main menu
     showMainMenu();
 });
+
+// Setup game buttons (Try Again, etc.)
+function setupGameButtons() {
+    // Try Again button in Game Over screen
+    const tryAgainBtn = document.querySelector('#gameOver button:first-child');
+    if (tryAgainBtn) {
+        tryAgainBtn.addEventListener('click', () => {
+            restartFromLevel1();
+        });
+    }
+    
+    // Restart Level button in Pause menu
+    const restartBtn = document.querySelector('#pauseMenu button:nth-child(2)');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+            restartCurrentLevel();
+        });
+    }
+}
 
 // Setup level selection cards with checkmarks
 function setupLevelSelection() {
@@ -136,6 +158,9 @@ function showMainMenu() {
     document.getElementById('instructions').classList.remove('active');
     document.getElementById('settings').classList.remove('active');
     document.getElementById('gameScreen').classList.add('hidden');
+    document.getElementById('pauseMenu').classList.add('hidden');
+    document.getElementById('gameOver').classList.add('hidden');
+    document.getElementById('levelComplete').classList.add('hidden');
     
     if (gameRunning) {
         stopGame();
@@ -148,6 +173,9 @@ function showLevelSelect() {
     document.getElementById('instructions').classList.remove('active');
     document.getElementById('settings').classList.remove('active');
     document.getElementById('gameScreen').classList.add('hidden');
+    document.getElementById('pauseMenu').classList.add('hidden');
+    document.getElementById('gameOver').classList.add('hidden');
+    document.getElementById('levelComplete').classList.add('hidden');
     updateLevelCheckmarks(); // Update checkmarks when showing level select
 }
 
@@ -171,6 +199,9 @@ function showSettings() {
 function startGame() {
     document.getElementById('mainMenu').classList.remove('active');
     document.getElementById('gameScreen').classList.remove('hidden');
+    document.getElementById('pauseMenu').classList.add('hidden');
+    document.getElementById('gameOver').classList.add('hidden');
+    document.getElementById('levelComplete').classList.add('hidden');
     loadLevel(1);
 }
 
@@ -194,6 +225,7 @@ function resetGame() {
     player.canDoubleJump = true;
     player.invincible = false;
     player.hasShield = false;
+    player.invincibilityTimer = 0;
     
     health = 3;
     score = 0;
@@ -357,12 +389,32 @@ function resumeGame() {
     document.getElementById('pauseMenu').classList.add('hidden');
 }
 
-function restartLevel() {
+// NEW FUNCTION: Restart from level 1 (for Try Again button)
+function restartFromLevel1() {
+    // Hide all menus
+    document.getElementById('pauseMenu').classList.add('hidden');
+    document.getElementById('gameOver').classList.add('hidden');
+    document.getElementById('levelComplete').classList.add('hidden');
+    
+    // Make sure game screen is visible
+    document.getElementById('gameScreen').classList.remove('hidden');
+    
+    // Load level 1
+    loadLevel(1);
+}
+
+// NEW FUNCTION: Restart current level (for Restart button in pause menu)
+function restartCurrentLevel() {
     document.getElementById('pauseMenu').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
     document.getElementById('levelComplete').classList.add('hidden');
     resetGame();
     loadLevelData(currentLevel);
+}
+
+// Keep original restartLevel for backward compatibility
+function restartLevel() {
+    restartCurrentLevel();
 }
 
 function nextLevel() {
