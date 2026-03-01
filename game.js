@@ -8,7 +8,7 @@ let health = 3;
 let startTime;
 let timerInterval;
 let levelComplete = false;
-let playerSpeed = 5; // Fixed base speed
+let playerSpeed = 5; // Fixed base speed - NEVER CHANGE THIS
 
 // Player Object
 let player = {
@@ -18,7 +18,7 @@ let player = {
     height: 30,
     velocityX: 0,
     velocityY: 0,
-    speed: 5, // Fixed speed - won't increase per level
+    speed: 5, // FIXED - this will NEVER increase
     jumpPower: -12,
     gravity: 0.5,
     grounded: false,
@@ -54,11 +54,11 @@ let keys = {
     q: false
 };
 
-// Level spawn points
+// Level spawn points - FIXED for level 3
 let spawnPoints = {
     1: { x: 100, y: 300 },
     2: { x: 100, y: 300 },
-    3: { x: 100, y: 300 },
+    3: { x: 120, y: 280 }, // CHANGED: Now spawns ON the first platform
     4: { x: 100, y: 300 }
 };
 
@@ -144,6 +144,9 @@ function loadLevel(level) {
 }
 
 function resetGame() {
+    // IMPORTANT: Reset player speed to 5 EVERY time
+    player.speed = 5;
+    
     // Reset player to spawn point
     player.x = spawnPoints[currentLevel]?.x || 100;
     player.y = spawnPoints[currentLevel]?.y || 300;
@@ -153,7 +156,6 @@ function resetGame() {
     player.canDoubleJump = true;
     player.invincible = false;
     player.hasShield = false;
-    player.speed = 5; // Reset speed to base value
     
     health = 3;
     score = 0;
@@ -230,27 +232,27 @@ function loadLevelData(level) {
         case 3: // Sky Fortress
             platforms = [
                 { x: 0, y: 350, width: 100, height: 20, texture: 'cloud' },
-                { x: 150, y: 300, width: 80, height: 20, texture: 'cloud' },
-                { x: 280, y: 250, width: 80, height: 20, texture: 'cloud' },
-                { x: 410, y: 200, width: 80, height: 20, texture: 'cloud' },
-                { x: 540, y: 150, width: 80, height: 20, texture: 'cloud' },
-                { x: 670, y: 200, width: 80, height: 20, texture: 'cloud' },
+                { x: 120, y: 300, width: 80, height: 20, texture: 'cloud' }, // CHANGED: Moved closer for spawn
+                { x: 250, y: 250, width: 80, height: 20, texture: 'cloud' },
+                { x: 380, y: 200, width: 80, height: 20, texture: 'cloud' },
+                { x: 510, y: 150, width: 80, height: 20, texture: 'cloud' },
+                { x: 640, y: 200, width: 80, height: 20, texture: 'cloud' },
                 { x: 750, y: 250, width: 50, height: 20, texture: 'cloud' }
             ];
             collectibles = [
                 { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 190, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 320, y: 220, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 450, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
-                { x: 580, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 },
-                { x: 710, y: 170, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
+                { x: 160, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 }, // CHANGED: Adjusted positions
+                { x: 290, y: 220, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 420, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
+                { x: 550, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 },
+                { x: 680, y: 170, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
             ];
             enemies = [
-                { x: 200, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'walker', patrolStart: 150, patrolEnd: 250 },
-                { x: 330, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 },
-                { x: 460, y: 180, width: 25, height: 25, speed: 2.5, direction: 1, type: 'flyer', amplitude: 20, verticalSpeed: 0.03 }
+                { x: 180, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 120, patrolEnd: 220 }, // CHANGED: Adjusted patrol
+                { x: 310, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 },
+                { x: 440, y: 180, width: 25, height: 25, speed: 2, direction: 1, type: 'flyer', amplitude: 20, verticalSpeed: 0.03 }
             ];
-            spawnPoints[3] = { x: 100, y: 300 };
+            spawnPoints[3] = { x: 30, y: 320 }; // CHANGED: Spawn on first platform (0,350) but above it
             document.getElementById('levelNameDisplay').textContent = 'Sky Fortress';
             break;
             
@@ -283,6 +285,13 @@ function loadLevelData(level) {
     
     // Reset collectibles collected state
     collectibles.forEach(c => c.collected = false);
+    
+    // Store original Y for jumpers
+    enemies.forEach(enemy => {
+        if (enemy.type === 'jumper') {
+            enemy.originalY = enemy.y;
+        }
+    });
 }
 
 function stopGame() {
@@ -407,6 +416,9 @@ function gameLoop() {
 }
 
 function update() {
+    // IMPORTANT: Ensure speed is ALWAYS 5
+    player.speed = 5;
+    
     // Apply gravity
     player.velocityY += player.gravity;
     
@@ -510,13 +522,6 @@ function update() {
             enemy.y += Math.sin(Date.now() * enemy.verticalSpeed) * 2;
         }
     }
-    
-    // Store original Y for jumpers
-    enemies.forEach(enemy => {
-        if (enemy.type === 'jumper' && !enemy.originalY) {
-            enemy.originalY = enemy.y;
-        }
-    });
     
     // Collect items
     for (let i = collectibles.length - 1; i >= 0; i--) {
@@ -711,6 +716,13 @@ function drawPlatforms() {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             for (let i = 0; i < platform.width / 20; i++) {
                 ctx.fillRect(platform.x + i * 20 + 5, platform.y - 2, 2, 5);
+            }
+        } else if (platform.texture === 'cloud') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(platform.x + i * 30 + 10, platform.y - 5, 8, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
     }
