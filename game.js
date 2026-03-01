@@ -56,10 +56,10 @@ let keys = {
 
 // Level spawn points - each level spawns on a platform
 let spawnPoints = {
-    1: { x: 120, y: 330 }, // Spawn on first platform (0,350) - adjusted up
-    2: { x: 120, y: 330 }, // Spawn on first platform (0,350)
-    3: { x: 30, y: 330 },  // Spawn on first cloud platform (0,350)
-    4: { x: 30, y: 330 }   // Spawn on first stone platform (0,350)
+    1: { x: 120, y: 330 }, // Spawn on first platform
+    2: { x: 120, y: 330 }, // Spawn on first platform
+    3: { x: 30, y: 330 },  // Spawn on first cloud platform
+    4: { x: 30, y: 330 }   // Spawn on first stone platform
 };
 
 // Level completion status for checkmarks
@@ -234,9 +234,12 @@ function loadLevelData(level) {
                 { x: 550, y: 220, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
                 { x: 700, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 }
             ];
+            // Enemies placed ON platforms
             enemies = [
-                { x: 300, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 250, patrolEnd: 400 },
-                { x: 500, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 20 }
+                { x: 300, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
+                  patrolStart: 250, patrolEnd: 400, platformY: 300 }, // On second platform
+                { x: 500, y: 230, width: 25, height: 25, speed: 0, direction: 1, type: 'stationary',
+                  platformY: 250 } // Stationary on third platform
             ];
             spawnPoints[1] = { x: 120, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Enchanted Forest';
@@ -258,10 +261,14 @@ function loadLevelData(level) {
                 { x: 550, y: 170, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
                 { x: 700, y: 220, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
             ];
+            // Enemies placed ON platforms
             enemies = [
-                { x: 250, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 200, patrolEnd: 300 },
-                { x: 400, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 350, patrolEnd: 450 },
-                { x: 600, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 15 }
+                { x: 250, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
+                  patrolStart: 200, patrolEnd: 300, platformY: 300 },
+                { x: 400, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
+                  patrolStart: 350, patrolEnd: 450, platformY: 250 },
+                { x: 600, y: 230, width: 25, height: 25, speed: 0, direction: 1, type: 'stationary',
+                  platformY: 250 }
             ];
             spawnPoints[2] = { x: 120, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Crystal Caverns';
@@ -285,10 +292,14 @@ function loadLevelData(level) {
                 { x: 550, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 },
                 { x: 680, y: 170, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
             ];
+            // Enemies placed ON platforms - no flying enemies
             enemies = [
-                { x: 180, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 120, patrolEnd: 220 },
-                { x: 310, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 },
-                { x: 440, y: 180, width: 25, height: 25, speed: 2, direction: 1, type: 'flyer', amplitude: 20, verticalSpeed: 0.03 }
+                { x: 180, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
+                  patrolStart: 120, patrolEnd: 220, platformY: 300 },
+                { x: 310, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
+                  patrolStart: 250, patrolEnd: 330, platformY: 250 },
+                { x: 440, y: 180, width: 25, height: 25, speed: 2, direction: 1, type: 'walker', 
+                  patrolStart: 380, patrolEnd: 500, platformY: 200 }
             ];
             spawnPoints[3] = { x: 30, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Sky Fortress';
@@ -310,11 +321,16 @@ function loadLevelData(level) {
                 { x: 520, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
                 { x: 670, y: 220, width: 20, height: 20, collected: false, type: 'shield', value: 150 }
             ];
+            // Enemies placed ON platforms
             enemies = [
-                { x: 100, y: 330, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 50, patrolEnd: 150 },
-                { x: 270, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 15 },
-                { x: 420, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 370, patrolEnd: 470 },
-                { x: 570, y: 280, width: 25, height: 25, speed: 2.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 }
+                { x: 100, y: 330, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
+                  patrolStart: 50, patrolEnd: 150, platformY: 350 },
+                { x: 270, y: 280, width: 25, height: 25, speed: 0, direction: 1, type: 'stationary',
+                  platformY: 300 },
+                { x: 420, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
+                  patrolStart: 370, patrolEnd: 470, platformY: 250 },
+                { x: 570, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'walker', 
+                  patrolStart: 520, patrolEnd: 620, platformY: 250 }
             ];
             spawnPoints[4] = { x: 30, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Lava Depths';
@@ -323,13 +339,6 @@ function loadLevelData(level) {
     
     // Reset collectibles collected state
     collectibles.forEach(c => c.collected = false);
-    
-    // Store original Y for jumpers
-    enemies.forEach(enemy => {
-        if (enemy.type === 'jumper') {
-            enemy.originalY = enemy.y;
-        }
-    });
 }
 
 function stopGame() {
@@ -544,20 +553,18 @@ function update() {
             }
         }
         
-        // Move enemies with FIXED speeds (not increasing)
+        // Move enemies - they stay on their platform Y position
         if (enemy.type === 'walker') {
             enemy.x += enemy.speed * enemy.direction;
+            // Keep enemy on its platform Y
+            enemy.y = enemy.platformY - enemy.height;
+            
             if (enemy.x <= enemy.patrolStart || enemy.x + enemy.width >= enemy.patrolEnd) {
                 enemy.direction *= -1;
             }
-        } else if (enemy.type === 'jumper') {
-            enemy.y = enemy.originalY + Math.sin(Date.now() * 0.01) * enemy.amplitude;
-        } else if (enemy.type === 'flyer') {
-            enemy.x += enemy.speed * enemy.direction;
-            if (enemy.x <= 0 || enemy.x + enemy.width >= canvas.width) {
-                enemy.direction *= -1;
-            }
-            enemy.y += Math.sin(Date.now() * enemy.verticalSpeed) * 2;
+        } else if (enemy.type === 'stationary') {
+            // Stationary enemy - just sits there
+            enemy.y = enemy.platformY - enemy.height;
         }
     }
     
@@ -834,8 +841,7 @@ function drawCollectibles() {
 function drawEnemies() {
     for (let enemy of enemies) {
         // Enemy body
-        ctx.fillStyle = enemy.type === 'walker' ? '#D32F2F' :
-                       enemy.type === 'jumper' ? '#C2185B' : '#7B1FA2';
+        ctx.fillStyle = enemy.type === 'walker' ? '#D32F2F' : '#C2185B';
         ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
         
         // Enemy eyes
@@ -856,7 +862,7 @@ function drawEnemies() {
         ctx.fillRect(enemy.x + 10, enemy.y + 15, 2, 3);
         ctx.fillRect(enemy.x + 13, enemy.y + 15, 2, 3);
         
-        // Enemy shadow
+        // Enemy shadow on platform
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.fillRect(enemy.x - 2, enemy.y + enemy.height, enemy.width + 4, 3);
     }
@@ -1022,9 +1028,6 @@ function gameOver() {
     document.getElementById('finalScore').textContent = `Score: ${score}`;
     document.getElementById('finalTime').textContent = `Time: ${document.getElementById('timerDisplay').textContent}`;
     document.getElementById('gameOver').classList.remove('hidden');
-    
-    // FIXED: Don't go to menu automatically - let player choose
-    // They can click "Try Again" or "Choose Realm"
 }
 
 // Audio Functions
