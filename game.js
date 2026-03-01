@@ -8,6 +8,7 @@ let health = 3;
 let startTime;
 let timerInterval;
 let levelComplete = false;
+let playerSpeed = 5; // Fixed base speed
 
 // Player Object
 let player = {
@@ -17,7 +18,7 @@ let player = {
     height: 30,
     velocityX: 0,
     velocityY: 0,
-    speed: 5,
+    speed: 5, // Fixed speed - won't increase per level
     jumpPower: -12,
     gravity: 0.5,
     grounded: false,
@@ -35,26 +36,14 @@ let powerups = {
     shield: false
 };
 
-// Platforms
-let platforms = [
-    { x: 0, y: 350, width: 200, height: 20 },
-    { x: 250, y: 300, width: 150, height: 20 },
-    { x: 450, y: 250, width: 150, height: 20 },
-    { x: 650, y: 200, width: 150, height: 20 }
-];
+// Platforms - will be set per level
+let platforms = [];
 
-// Collectibles
-let collectibles = [
-    { x: 150, y: 320, width: 20, height: 20, collected: false, type: 'coin' },
-    { x: 350, y: 270, width: 20, height: 20, collected: false, type: 'coin' },
-    { x: 550, y: 220, width: 20, height: 20, collected: false, type: 'powerup' }
-];
+// Collectibles - will be set per level
+let collectibles = [];
 
-// Enemies
-let enemies = [
-    { x: 300, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'walker' },
-    { x: 500, y: 230, width: 25, height: 25, speed: 3, direction: 1, type: 'jumper' }
-];
+// Enemies - will be set per level
+let enemies = [];
 
 // Keys Pressed
 let keys = {
@@ -63,6 +52,14 @@ let keys = {
     space: false,
     shift: false,
     q: false
+};
+
+// Level spawn points
+let spawnPoints = {
+    1: { x: 100, y: 300 },
+    2: { x: 100, y: 300 },
+    3: { x: 100, y: 300 },
+    4: { x: 100, y: 300 }
 };
 
 // Initialize Game
@@ -78,9 +75,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sfxVolume').addEventListener('input', updateSFXVolume);
     document.getElementById('musicVolume').addEventListener('input', updateMusicVolume);
     
+    // Level selection cards
+    setupLevelSelection();
+    
     // Start with main menu
     showMainMenu();
 });
+
+// Setup level selection cards
+function setupLevelSelection() {
+    const levelCards = document.querySelectorAll('.level-card');
+    levelCards.forEach((card, index) => {
+        card.addEventListener('click', () => {
+            loadLevel(index + 1);
+        });
+    });
+}
 
 // Menu Navigation Functions
 function showMainMenu() {
@@ -134,14 +144,16 @@ function loadLevel(level) {
 }
 
 function resetGame() {
-    player.x = 100;
-    player.y = 300;
+    // Reset player to spawn point
+    player.x = spawnPoints[currentLevel]?.x || 100;
+    player.y = spawnPoints[currentLevel]?.y || 300;
     player.velocityX = 0;
     player.velocityY = 0;
     player.grounded = false;
     player.canDoubleJump = true;
     player.invincible = false;
     player.hasShield = false;
+    player.speed = 5; // Reset speed to base value
     
     health = 3;
     score = 0;
@@ -162,100 +174,109 @@ function resetGame() {
 }
 
 function loadLevelData(level) {
+    // Reset arrays
+    platforms = [];
+    collectibles = [];
+    enemies = [];
+    
     switch(level) {
         case 1: // Enchanted Forest
             platforms = [
-                { x: 0, y: 350, width: 200, height: 20 },
-                { x: 250, y: 300, width: 150, height: 20 },
-                { x: 450, y: 250, width: 150, height: 20 },
-                { x: 650, y: 200, width: 150, height: 20 },
-                { x: 750, y: 150, width: 50, height: 20 }
+                { x: 0, y: 350, width: 200, height: 20, texture: 'grass' },
+                { x: 250, y: 300, width: 150, height: 20, texture: 'grass' },
+                { x: 450, y: 250, width: 150, height: 20, texture: 'grass' },
+                { x: 650, y: 200, width: 150, height: 20, texture: 'grass' },
+                { x: 750, y: 150, width: 50, height: 20, texture: 'grass' }
             ];
             collectibles = [
-                { x: 150, y: 320, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 350, y: 270, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 550, y: 220, width: 20, height: 20, collected: false, type: 'powerup' },
-                { x: 700, y: 120, width: 20, height: 20, collected: false, type: 'shield' }
+                { x: 150, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 350, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 550, y: 220, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
+                { x: 700, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 }
             ];
             enemies = [
-                { x: 300, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'walker' },
-                { x: 500, y: 230, width: 25, height: 25, speed: 3, direction: 1, type: 'jumper' }
+                { x: 300, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 250, patrolEnd: 400 },
+                { x: 500, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 20 }
             ];
+            spawnPoints[1] = { x: 100, y: 300 };
             document.getElementById('levelNameDisplay').textContent = 'Enchanted Forest';
             break;
             
         case 2: // Crystal Caverns
             platforms = [
-                { x: 0, y: 350, width: 150, height: 20 },
-                { x: 200, y: 300, width: 100, height: 20 },
-                { x: 350, y: 250, width: 100, height: 20 },
-                { x: 500, y: 200, width: 100, height: 20 },
-                { x: 650, y: 250, width: 100, height: 20 },
-                { x: 700, y: 300, width: 100, height: 20 }
+                { x: 0, y: 350, width: 150, height: 20, texture: 'crystal' },
+                { x: 200, y: 300, width: 100, height: 20, texture: 'crystal' },
+                { x: 350, y: 250, width: 100, height: 20, texture: 'crystal' },
+                { x: 500, y: 200, width: 100, height: 20, texture: 'crystal' },
+                { x: 650, y: 250, width: 100, height: 20, texture: 'crystal' },
+                { x: 700, y: 300, width: 100, height: 20, texture: 'crystal' }
             ];
             collectibles = [
-                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 250, y: 270, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 400, y: 220, width: 20, height: 20, collected: false, type: 'powerup' },
-                { x: 550, y: 170, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 700, y: 220, width: 20, height: 20, collected: false, type: 'doublejump' }
+                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 250, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 400, y: 220, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
+                { x: 550, y: 170, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 700, y: 220, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
             ];
             enemies = [
-                { x: 250, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'walker' },
-                { x: 400, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'walker' },
-                { x: 600, y: 280, width: 25, height: 25, speed: 3, direction: 1, type: 'jumper' }
+                { x: 250, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 200, patrolEnd: 300 },
+                { x: 400, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 350, patrolEnd: 450 },
+                { x: 600, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 15 }
             ];
+            spawnPoints[2] = { x: 100, y: 300 };
             document.getElementById('levelNameDisplay').textContent = 'Crystal Caverns';
             break;
             
         case 3: // Sky Fortress
             platforms = [
-                { x: 0, y: 350, width: 100, height: 20 },
-                { x: 150, y: 300, width: 80, height: 20 },
-                { x: 280, y: 250, width: 80, height: 20 },
-                { x: 410, y: 200, width: 80, height: 20 },
-                { x: 540, y: 150, width: 80, height: 20 },
-                { x: 670, y: 200, width: 80, height: 20 },
-                { x: 750, y: 250, width: 50, height: 20 }
+                { x: 0, y: 350, width: 100, height: 20, texture: 'cloud' },
+                { x: 150, y: 300, width: 80, height: 20, texture: 'cloud' },
+                { x: 280, y: 250, width: 80, height: 20, texture: 'cloud' },
+                { x: 410, y: 200, width: 80, height: 20, texture: 'cloud' },
+                { x: 540, y: 150, width: 80, height: 20, texture: 'cloud' },
+                { x: 670, y: 200, width: 80, height: 20, texture: 'cloud' },
+                { x: 750, y: 250, width: 50, height: 20, texture: 'cloud' }
             ];
             collectibles = [
-                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 190, y: 270, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 320, y: 220, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 450, y: 170, width: 20, height: 20, collected: false, type: 'powerup' },
-                { x: 580, y: 120, width: 20, height: 20, collected: false, type: 'shield' },
-                { x: 710, y: 170, width: 20, height: 20, collected: false, type: 'doublejump' }
+                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 190, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 320, y: 220, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 450, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
+                { x: 580, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 },
+                { x: 710, y: 170, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
             ];
             enemies = [
-                { x: 200, y: 280, width: 25, height: 25, speed: 3, direction: 1, type: 'walker' },
-                { x: 330, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'flyer' },
-                { x: 460, y: 180, width: 25, height: 25, speed: 4, direction: 1, type: 'flyer' }
+                { x: 200, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'walker', patrolStart: 150, patrolEnd: 250 },
+                { x: 330, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 },
+                { x: 460, y: 180, width: 25, height: 25, speed: 2.5, direction: 1, type: 'flyer', amplitude: 20, verticalSpeed: 0.03 }
             ];
+            spawnPoints[3] = { x: 100, y: 300 };
             document.getElementById('levelNameDisplay').textContent = 'Sky Fortress';
             break;
             
         case 4: // Lava Depths
             platforms = [
-                { x: 0, y: 350, width: 120, height: 20 },
-                { x: 170, y: 300, width: 100, height: 20 },
-                { x: 320, y: 250, width: 100, height: 20 },
-                { x: 470, y: 200, width: 100, height: 20 },
-                { x: 620, y: 250, width: 100, height: 20 },
-                { x: 720, y: 300, width: 80, height: 20 }
+                { x: 0, y: 350, width: 120, height: 20, texture: 'stone' },
+                { x: 170, y: 300, width: 100, height: 20, texture: 'stone' },
+                { x: 320, y: 250, width: 100, height: 20, texture: 'stone' },
+                { x: 470, y: 200, width: 100, height: 20, texture: 'stone' },
+                { x: 620, y: 250, width: 100, height: 20, texture: 'stone' },
+                { x: 720, y: 300, width: 80, height: 20, texture: 'stone' }
             ];
             collectibles = [
-                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 220, y: 270, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 370, y: 220, width: 20, height: 20, collected: false, type: 'coin' },
-                { x: 520, y: 170, width: 20, height: 20, collected: false, type: 'powerup' },
-                { x: 670, y: 220, width: 20, height: 20, collected: false, type: 'shield' }
+                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 220, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 370, y: 220, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
+                { x: 520, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
+                { x: 670, y: 220, width: 20, height: 20, collected: false, type: 'shield', value: 150 }
             ];
             enemies = [
-                { x: 100, y: 330, width: 25, height: 25, speed: 2, direction: 1, type: 'walker' },
-                { x: 270, y: 280, width: 25, height: 25, speed: 3, direction: 1, type: 'jumper' },
-                { x: 420, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'walker' },
-                { x: 570, y: 280, width: 25, height: 25, speed: 4, direction: 1, type: 'flyer' }
+                { x: 100, y: 330, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 50, patrolEnd: 150 },
+                { x: 270, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 15 },
+                { x: 420, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 370, patrolEnd: 470 },
+                { x: 570, y: 280, width: 25, height: 25, speed: 2.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 }
             ];
+            spawnPoints[4] = { x: 100, y: 300 };
             document.getElementById('levelNameDisplay').textContent = 'Lava Depths';
             break;
     }
@@ -389,7 +410,7 @@ function update() {
     // Apply gravity
     player.velocityY += player.gravity;
     
-    // Horizontal movement
+    // Horizontal movement - fixed speed
     if (keys.left) {
         player.velocityX = -player.speed;
     } else if (keys.right) {
@@ -451,7 +472,9 @@ function update() {
     }
     
     // Enemy collision
-    for (let enemy of enemies) {
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        let enemy = enemies[i];
+        
         if (!player.invincible &&
             player.x < enemy.x + enemy.width &&
             player.x + player.width > enemy.x &&
@@ -460,7 +483,7 @@ function update() {
             
             if (player.velocityY > 0 && player.y + player.height - player.velocityY <= enemy.y) {
                 // Player landed on enemy
-                enemies = enemies.filter(e => e !== enemy);
+                enemies.splice(i, 1);
                 player.velocityY = player.jumpPower / 2;
                 score += 100;
                 updateHUD();
@@ -471,25 +494,33 @@ function update() {
             }
         }
         
-        // Move enemies
+        // Move enemies with patrol boundaries
         if (enemy.type === 'walker') {
             enemy.x += enemy.speed * enemy.direction;
-            if (enemy.x < 0 || enemy.x + enemy.width > canvas.width) {
+            if (enemy.x <= enemy.patrolStart || enemy.x + enemy.width >= enemy.patrolEnd) {
                 enemy.direction *= -1;
             }
         } else if (enemy.type === 'jumper') {
-            enemy.y += Math.sin(Date.now() * 0.01) * 2;
+            enemy.y = enemy.originalY + Math.sin(Date.now() * 0.01) * enemy.amplitude;
         } else if (enemy.type === 'flyer') {
             enemy.x += enemy.speed * enemy.direction;
-            enemy.y += Math.sin(Date.now() * 0.02) * 3;
-            if (enemy.x < 0 || enemy.x + enemy.width > canvas.width) {
+            if (enemy.x <= 0 || enemy.x + enemy.width >= canvas.width) {
                 enemy.direction *= -1;
             }
+            enemy.y += Math.sin(Date.now() * enemy.verticalSpeed) * 2;
         }
     }
     
+    // Store original Y for jumpers
+    enemies.forEach(enemy => {
+        if (enemy.type === 'jumper' && !enemy.originalY) {
+            enemy.originalY = enemy.y;
+        }
+    });
+    
     // Collect items
-    for (let item of collectibles) {
+    for (let i = collectibles.length - 1; i >= 0; i--) {
+        let item = collectibles[i];
         if (!item.collected &&
             player.x < item.x + item.width &&
             player.x + player.width > item.x &&
@@ -497,7 +528,7 @@ function update() {
             player.y + player.height > item.y) {
             
             item.collected = true;
-            score += 50;
+            score += item.value || 50;
             updateHUD();
             playSound('collectSound');
             
@@ -521,11 +552,11 @@ function update() {
         completeLevel();
     }
     
-    // Check if player fell off
-    if (player.y > canvas.height) {
+    // Check if player fell off - respawn at spawn point
+    if (player.y > canvas.height + 50) {
         takeDamage();
-        player.x = 100;
-        player.y = 300;
+        player.x = spawnPoints[currentLevel].x;
+        player.y = spawnPoints[currentLevel].y;
         player.velocityX = 0;
         player.velocityY = 0;
     }
@@ -539,92 +570,323 @@ function update() {
     }
 }
 
+// Enhanced drawing with better graphics
 function draw() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw background (parallax effect)
-    ctx.fillStyle = getBackgroundColor();
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw background with gradient and details
+    drawBackground();
     
-    // Draw platforms
-    ctx.fillStyle = '#8B4513';
+    // Draw platforms with textures
+    drawPlatforms();
+    
+    // Draw collectibles with animations
+    drawCollectibles();
+    
+    // Draw enemies with details
+    drawEnemies();
+    
+    // Draw player with animations
+    drawPlayer();
+    
+    // Draw particles and effects
+    drawEffects();
+}
+
+function drawBackground() {
+    // Create gradient background
+    let gradient;
+    switch(currentLevel) {
+        case 1: // Enchanted Forest
+            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(0.5, '#98D8E8');
+            gradient.addColorStop(1, '#5F9EA0');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw trees
+            ctx.fillStyle = '#228B22';
+            for (let i = 0; i < 5; i++) {
+                let x = (i * 150) % canvas.width;
+                ctx.fillRect(x, 200, 10, 150);
+                ctx.beginPath();
+                ctx.arc(x + 5, 190, 20, 0, Math.PI * 2);
+                ctx.fillStyle = '#32CD32';
+                ctx.fill();
+            }
+            break;
+            
+        case 2: // Crystal Caverns
+            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#4A148C');
+            gradient.addColorStop(0.5, '#7B1FA2');
+            gradient.addColorStop(1, '#311B92');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw crystals
+            for (let i = 0; i < 8; i++) {
+                let x = (i * 100) % canvas.width;
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.sin(Date.now() * 0.001 + i) * 0.05})`;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x + 20, 50);
+                ctx.lineTo(x - 20, 50);
+                ctx.fill();
+            }
+            break;
+            
+        case 3: // Sky Fortress
+            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(0.3, '#B0E0E6');
+            gradient.addColorStop(1, '#4682B4');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw clouds
+            for (let i = 0; i < 3; i++) {
+                let x = (i * 200 + Date.now() * 0.02) % (canvas.width + 200) - 100;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x, 50, 30, 0, Math.PI * 2);
+                ctx.arc(x + 40, 50, 25, 0, Math.PI * 2);
+                ctx.arc(x + 20, 30, 20, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+            
+        case 4: // Lava Depths
+            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#8B0000');
+            gradient.addColorStop(0.5, '#B22222');
+            gradient.addColorStop(1, '#DC143C');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw lava bubbles
+            for (let i = 0; i < 10; i++) {
+                let x = (i * 80 + Date.now() * 0.01) % canvas.width;
+                let y = canvas.height - 30 + Math.sin(Date.now() * 0.002 + i) * 10;
+                ctx.fillStyle = `rgba(255, 140, 0, ${0.3 + Math.sin(Date.now() * 0.003 + i) * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 5 + Math.sin(Date.now() * 0.001 + i) * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+    }
+}
+
+function drawPlatforms() {
     for (let platform of platforms) {
+        // Platform base
+        ctx.fillStyle = platform.texture === 'grass' ? '#8B4513' : 
+                       platform.texture === 'crystal' ? '#4A148C' :
+                       platform.texture === 'cloud' ? '#FFFFFF' : '#555555';
         ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
         
-        // Add platform details
-        ctx.fillStyle = '#A0522D';
+        // Platform top
+        ctx.fillStyle = platform.texture === 'grass' ? '#32CD32' : 
+                       platform.texture === 'crystal' ? '#E1BEE7' :
+                       platform.texture === 'cloud' ? '#F0F8FF' : '#888888';
+        ctx.fillRect(platform.x, platform.y - 3, platform.width, 5);
+        
+        // Platform edge highlights
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.fillRect(platform.x, platform.y - 2, platform.width, 2);
-        ctx.fillStyle = '#8B4513';
-    }
-    
-    // Draw collectibles
-    for (let item of collectibles) {
-        if (!item.collected) {
-            if (item.type === 'coin') {
-                ctx.fillStyle = 'gold';
-                ctx.beginPath();
-                ctx.arc(item.x + item.width/2, item.y + item.height/2, item.width/2, 0, Math.PI * 2);
-                ctx.fill();
-            } else {
-                ctx.fillStyle = item.type === 'powerup' ? 'purple' : 
-                               item.type === 'doublejump' ? 'cyan' : 'blue';
-                ctx.fillRect(item.x, item.y, item.width, item.height);
-                
-                // Glow effect
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = item.type === 'powerup' ? 'purple' : 
-                                 item.type === 'doublejump' ? 'cyan' : 'blue';
-                ctx.fillRect(item.x, item.y, item.width, item.height);
-                ctx.shadowBlur = 0;
+        
+        // Platform bottom shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(platform.x, platform.y + platform.height, platform.width, 3);
+        
+        // Add texture details
+        if (platform.texture === 'grass') {
+            for (let i = 0; i < 3; i++) {
+                ctx.fillStyle = '#228B22';
+                ctx.fillRect(platform.x + i * 40 + 10, platform.y - 8, 5, 8);
+            }
+        } else if (platform.texture === 'crystal') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            for (let i = 0; i < platform.width / 20; i++) {
+                ctx.fillRect(platform.x + i * 20 + 5, platform.y - 2, 2, 5);
             }
         }
     }
-    
-    // Draw enemies
+}
+
+function drawCollectibles() {
+    for (let item of collectibles) {
+        if (!item.collected) {
+            let bounce = Math.sin(Date.now() * 0.005 + item.x) * 3;
+            let y = item.y + bounce;
+            
+            if (item.type === 'coin') {
+                // Animated coin
+                ctx.save();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'gold';
+                
+                // Coin body
+                ctx.fillStyle = 'gold';
+                ctx.beginPath();
+                ctx.arc(item.x + item.width/2, y + item.height/2, item.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Coin shine
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(item.x + item.width/3, y + item.height/3, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Coin symbol
+                ctx.fillStyle = '#B8860B';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('⭐', item.x + item.width/2, y + item.height/2);
+                
+                ctx.restore();
+                
+            } else {
+                // Powerup with glow
+                ctx.save();
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = item.type === 'powerup' ? 'purple' : 
+                                 item.type === 'doublejump' ? 'cyan' : 'blue';
+                
+                // Powerup body
+                ctx.fillStyle = item.type === 'powerup' ? '#9C27B0' : 
+                               item.type === 'doublejump' ? '#00BCD4' : '#2196F3';
+                ctx.fillRect(item.x, y, item.width, item.height);
+                
+                // Powerup symbol
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                let symbol = item.type === 'powerup' ? '✨' : 
+                            item.type === 'doublejump' ? '🦶' : '🛡️';
+                ctx.fillText(symbol, item.x + item.width/2, y + item.height/2);
+                
+                // Powerup glow pulse
+                ctx.shadowBlur = 10 + Math.sin(Date.now() * 0.005) * 5;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(item.x - 2, y - 2, item.width + 4, item.height + 4);
+                
+                ctx.restore();
+            }
+        }
+    }
+}
+
+function drawEnemies() {
     for (let enemy of enemies) {
-        ctx.fillStyle = 'red';
+        // Enemy body
+        ctx.fillStyle = enemy.type === 'walker' ? '#D32F2F' :
+                       enemy.type === 'jumper' ? '#C2185B' : '#7B1FA2';
         ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
         
         // Enemy eyes
         ctx.fillStyle = 'white';
         ctx.fillRect(enemy.x + 5, enemy.y + 5, 5, 5);
         ctx.fillRect(enemy.x + 15, enemy.y + 5, 5, 5);
+        
+        // Enemy pupils (follow player)
+        let pupilOffsetX = (player.x - enemy.x) * 0.02;
+        pupilOffsetX = Math.max(-2, Math.min(2, pupilOffsetX));
+        
         ctx.fillStyle = 'black';
-        ctx.fillRect(enemy.x + 7, enemy.y + 7, 3, 3);
-        ctx.fillRect(enemy.x + 17, enemy.y + 7, 3, 3);
+        ctx.fillRect(enemy.x + 6 + pupilOffsetX, enemy.y + 6, 3, 3);
+        ctx.fillRect(enemy.x + 16 + pupilOffsetX, enemy.y + 6, 3, 3);
+        
+        // Enemy mouth/teeth
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(enemy.x + 10, enemy.y + 15, 2, 3);
+        ctx.fillRect(enemy.x + 13, enemy.y + 15, 2, 3);
+        
+        // Enemy shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(enemy.x - 2, enemy.y + enemy.height, enemy.width + 4, 3);
     }
+}
+
+function drawPlayer() {
+    // Player shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(player.x - 5, player.y + player.height, player.width + 10, 5);
     
-    // Draw player
-    ctx.fillStyle = player.invincible ? 'yellow' : 'blue';
+    // Player body with invincibility effect
+    if (player.invincible) {
+        ctx.fillStyle = `rgba(255, 255, 0, ${0.5 + Math.sin(Date.now() * 0.02) * 0.3})`;
+    } else {
+        ctx.fillStyle = '#2196F3';
+    }
     ctx.fillRect(player.x, player.y, player.width, player.height);
     
-    // Player details
-    ctx.fillStyle = 'white';
-    ctx.fillRect(player.x + 5, player.y + 5, 5, 5);
-    ctx.fillRect(player.x + 20, player.y + 5, 5, 5);
-    ctx.fillStyle = 'black';
-    ctx.fillRect(player.x + 7, player.y + 7, 3, 3);
-    ctx.fillRect(player.x + 22, player.y + 7, 3, 3);
-    
     // Player cape if has powerups
-    if (powerups.doubleJump || powerups.dash || powerups.shield) {
+    if (powerups.doubleJump || powerups.dash || powerups.shield || player.hasShield) {
         ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
         ctx.beginPath();
         ctx.moveTo(player.x + player.width, player.y);
         ctx.lineTo(player.x + player.width + 20, player.y + player.height/2);
         ctx.lineTo(player.x + player.width, player.y + player.height);
         ctx.fill();
+        
+        // Cape sparkles
+        for (let i = 0; i < 3; i++) {
+            ctx.fillStyle = `rgba(255, 215, 0, ${0.5 + Math.sin(Date.now() * 0.01 + i) * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(player.x + player.width + 10, player.y + player.height/2 - 5 + i * 10, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
     
-    // Draw particles if invincible
+    // Player eyes
+    ctx.fillStyle = 'white';
+    ctx.fillRect(player.x + 5, player.y + 5, 5, 5);
+    ctx.fillRect(player.x + 20, player.y + 5, 5, 5);
+    
+    // Player pupils (look in movement direction)
+    let pupilOffset = 0;
+    if (player.velocityX > 0) pupilOffset = 1;
+    if (player.velocityX < 0) pupilOffset = -1;
+    
+    ctx.fillStyle = 'black';
+    ctx.fillRect(player.x + 6 + pupilOffset, player.y + 6, 3, 3);
+    ctx.fillRect(player.x + 21 + pupilOffset, player.y + 6, 3, 3);
+    
+    // Player hat
+    ctx.fillStyle = '#FF5722';
+    ctx.fillRect(player.x + 5, player.y - 5, 20, 5);
+    ctx.fillRect(player.x + 10, player.y - 10, 10, 5);
+}
+
+function drawEffects() {
+    // Invincibility particles
     if (player.invincible) {
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 10; i++) {
             ctx.fillStyle = `rgba(255, 255, 0, ${Math.random() * 0.5})`;
-            ctx.fillRect(
+            ctx.beginPath();
+            ctx.arc(
                 player.x + Math.random() * player.width,
                 player.y + Math.random() * player.height,
-                2, 2
+                Math.random() * 3,
+                0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
+    
+    // Jump dust
+    if (!player.grounded && player.velocityY < 0) {
+        for (let i = 0; i < 3; i++) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + Math.random() * 0.3})`;
+            ctx.fillRect(
+                player.x + Math.random() * player.width,
+                player.y + player.height,
+                5, 5
             );
         }
     }
@@ -633,10 +895,10 @@ function draw() {
 // Helper Functions
 function getBackgroundColor() {
     switch(currentLevel) {
-        case 1: return '#87CEEB'; // Sky blue for forest
-        case 2: return '#4A148C'; // Deep purple for caverns
-        case 3: return '#87CEEB'; // Sky blue for sky fortress
-        case 4: return '#8B0000'; // Dark red for lava
+        case 1: return '#87CEEB';
+        case 2: return '#4A148C';
+        case 3: return '#87CEEB';
+        case 4: return '#8B0000';
         default: return '#87CEEB';
     }
 }
@@ -647,7 +909,7 @@ function takeDamage() {
     if (player.hasShield) {
         player.hasShield = false;
         player.invincible = true;
-        player.invincibilityTimer = 60; // 1 second at 60fps
+        player.invincibilityTimer = 60;
         powerups.shield = false;
         updatePowerupIcons();
         playSound('damageSound');
@@ -669,7 +931,7 @@ function activateShield() {
         player.hasShield = true;
         powerups.shield = false;
         player.invincible = true;
-        player.invincibilityTimer = 300; // 5 seconds
+        player.invincibilityTimer = 300;
         updatePowerupIcons();
         playSound('powerupSound');
     }
@@ -699,7 +961,6 @@ function updateTimer() {
 function completeLevel() {
     levelComplete = true;
     
-    // Calculate final stats
     let collectiblesCount = collectibles.filter(c => c.collected).length;
     let totalCollectibles = collectibles.length;
     
@@ -709,7 +970,6 @@ function completeLevel() {
     
     document.getElementById('levelComplete').classList.remove('hidden');
     
-    // Bonus for collectibles
     score += collectiblesCount * 100;
     updateHUD();
 }
@@ -726,16 +986,13 @@ function playSound(soundId) {
     let sound = document.getElementById(soundId);
     if (sound) {
         sound.currentTime = 0;
-        sound.play().catch(e => {
-            // Silently ignore - audio files not found
-        });
+        sound.play().catch(e => {});
     }
 }
 
 function updateSFXVolume(e) {
     let volume = e.target.value / 100;
     document.getElementById('sfxValue').textContent = e.target.value + '%';
-    // Update all sound effects volume
     document.getElementById('jumpSound').volume = volume;
     document.getElementById('collectSound').volume = volume;
     document.getElementById('damageSound').volume = volume;
