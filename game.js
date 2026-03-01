@@ -8,7 +8,7 @@ let health = 3;
 let startTime;
 let timerInterval;
 let levelComplete = false;
-let playerSpeed = 5; // Fixed base speed - NEVER CHANGE THIS
+let playerSpeed = 5; // FIXED - never changes
 
 // Player Object
 let player = {
@@ -18,7 +18,7 @@ let player = {
     height: 30,
     velocityX: 0,
     velocityY: 0,
-    speed: 5, // FIXED - this will NEVER increase
+    speed: 5, // FIXED - always 5
     jumpPower: -12,
     gravity: 0.5,
     grounded: false,
@@ -54,12 +54,20 @@ let keys = {
     q: false
 };
 
-// Level spawn points - FIXED for level 3
+// Level spawn points - each level spawns on a platform
 let spawnPoints = {
-    1: { x: 100, y: 300 },
-    2: { x: 100, y: 300 },
-    3: { x: 120, y: 280 }, // CHANGED: Now spawns ON the first platform
-    4: { x: 100, y: 300 }
+    1: { x: 120, y: 330 }, // Spawn on first platform (0,350) - adjusted up
+    2: { x: 120, y: 330 }, // Spawn on first platform (0,350)
+    3: { x: 30, y: 330 },  // Spawn on first cloud platform (0,350)
+    4: { x: 30, y: 330 }   // Spawn on first stone platform (0,350)
+};
+
+// Level completion status for checkmarks
+let levelCompleted = {
+    1: false,
+    2: false,
+    3: false,
+    4: false
 };
 
 // Initialize Game
@@ -82,13 +90,42 @@ document.addEventListener('DOMContentLoaded', () => {
     showMainMenu();
 });
 
-// Setup level selection cards
+// Setup level selection cards with checkmarks
 function setupLevelSelection() {
     const levelCards = document.querySelectorAll('.level-card');
     levelCards.forEach((card, index) => {
+        const levelNum = index + 1;
+        
+        // Add click handler
         card.addEventListener('click', () => {
-            loadLevel(index + 1);
+            // Remove selected class from all cards
+            levelCards.forEach(c => c.classList.remove('selected'));
+            // Add selected class to clicked card
+            card.classList.add('selected');
+            // Load the level
+            loadLevel(levelNum);
         });
+        
+        // Add checkmark element if not exists
+        if (!card.querySelector('.checkmark')) {
+            const checkmark = document.createElement('div');
+            checkmark.className = 'checkmark';
+            checkmark.innerHTML = '✓';
+            checkmark.style.display = 'none';
+            card.appendChild(checkmark);
+        }
+    });
+}
+
+// Update level selection checkmarks
+function updateLevelCheckmarks() {
+    const levelCards = document.querySelectorAll('.level-card');
+    levelCards.forEach((card, index) => {
+        const levelNum = index + 1;
+        const checkmark = card.querySelector('.checkmark');
+        if (checkmark) {
+            checkmark.style.display = levelCompleted[levelNum] ? 'block' : 'none';
+        }
     });
 }
 
@@ -111,6 +148,7 @@ function showLevelSelect() {
     document.getElementById('instructions').classList.remove('active');
     document.getElementById('settings').classList.remove('active');
     document.getElementById('gameScreen').classList.add('hidden');
+    updateLevelCheckmarks(); // Update checkmarks when showing level select
 }
 
 function showInstructions() {
@@ -144,15 +182,15 @@ function loadLevel(level) {
 }
 
 function resetGame() {
-    // IMPORTANT: Reset player speed to 5 EVERY time
+    // Reset player speed to 5 (FIXED)
     player.speed = 5;
     
-    // Reset player to spawn point
-    player.x = spawnPoints[currentLevel]?.x || 100;
-    player.y = spawnPoints[currentLevel]?.y || 300;
+    // Reset player to spawn point (ON a platform)
+    player.x = spawnPoints[currentLevel].x;
+    player.y = spawnPoints[currentLevel].y;
     player.velocityX = 0;
     player.velocityY = 0;
-    player.grounded = false;
+    player.grounded = true; // Start grounded
     player.canDoubleJump = true;
     player.invincible = false;
     player.hasShield = false;
@@ -200,7 +238,7 @@ function loadLevelData(level) {
                 { x: 300, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 250, patrolEnd: 400 },
                 { x: 500, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 20 }
             ];
-            spawnPoints[1] = { x: 100, y: 300 };
+            spawnPoints[1] = { x: 120, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Enchanted Forest';
             break;
             
@@ -225,14 +263,14 @@ function loadLevelData(level) {
                 { x: 400, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 350, patrolEnd: 450 },
                 { x: 600, y: 280, width: 25, height: 25, speed: 2, direction: 1, type: 'jumper', amplitude: 15 }
             ];
-            spawnPoints[2] = { x: 100, y: 300 };
+            spawnPoints[2] = { x: 120, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Crystal Caverns';
             break;
             
         case 3: // Sky Fortress
             platforms = [
                 { x: 0, y: 350, width: 100, height: 20, texture: 'cloud' },
-                { x: 120, y: 300, width: 80, height: 20, texture: 'cloud' }, // CHANGED: Moved closer for spawn
+                { x: 120, y: 300, width: 80, height: 20, texture: 'cloud' },
                 { x: 250, y: 250, width: 80, height: 20, texture: 'cloud' },
                 { x: 380, y: 200, width: 80, height: 20, texture: 'cloud' },
                 { x: 510, y: 150, width: 80, height: 20, texture: 'cloud' },
@@ -241,18 +279,18 @@ function loadLevelData(level) {
             ];
             collectibles = [
                 { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 160, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 }, // CHANGED: Adjusted positions
+                { x: 160, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
                 { x: 290, y: 220, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
                 { x: 420, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
                 { x: 550, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 },
                 { x: 680, y: 170, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
             ];
             enemies = [
-                { x: 180, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 120, patrolEnd: 220 }, // CHANGED: Adjusted patrol
+                { x: 180, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 120, patrolEnd: 220 },
                 { x: 310, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 },
                 { x: 440, y: 180, width: 25, height: 25, speed: 2, direction: 1, type: 'flyer', amplitude: 20, verticalSpeed: 0.03 }
             ];
-            spawnPoints[3] = { x: 30, y: 320 }; // CHANGED: Spawn on first platform (0,350) but above it
+            spawnPoints[3] = { x: 30, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Sky Fortress';
             break;
             
@@ -278,7 +316,7 @@ function loadLevelData(level) {
                 { x: 420, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', patrolStart: 370, patrolEnd: 470 },
                 { x: 570, y: 280, width: 25, height: 25, speed: 2.5, direction: 1, type: 'flyer', amplitude: 15, verticalSpeed: 0.02 }
             ];
-            spawnPoints[4] = { x: 100, y: 300 };
+            spawnPoints[4] = { x: 30, y: 330 };
             document.getElementById('levelNameDisplay').textContent = 'Lava Depths';
             break;
     }
@@ -322,7 +360,7 @@ function nextLevel() {
     if (currentLevel < 4) {
         loadLevel(currentLevel + 1);
     } else {
-        // Game completed
+        // Game completed - show main menu
         showMainMenu();
     }
     document.getElementById('levelComplete').classList.add('hidden');
@@ -416,7 +454,7 @@ function gameLoop() {
 }
 
 function update() {
-    // IMPORTANT: Ensure speed is ALWAYS 5
+    // FIXED: Always keep speed at 5
     player.speed = 5;
     
     // Apply gravity
@@ -506,7 +544,7 @@ function update() {
             }
         }
         
-        // Move enemies with patrol boundaries
+        // Move enemies with FIXED speeds (not increasing)
         if (enemy.type === 'walker') {
             enemy.x += enemy.speed * enemy.direction;
             if (enemy.x <= enemy.patrolStart || enemy.x + enemy.width >= enemy.patrolEnd) {
@@ -557,7 +595,7 @@ function update() {
         completeLevel();
     }
     
-    // Check if player fell off - respawn at spawn point
+    // Check if player fell off - respawn at spawn point and take damage
     if (player.y > canvas.height + 50) {
         takeDamage();
         player.x = spawnPoints[currentLevel].x;
@@ -905,16 +943,6 @@ function drawEffects() {
 }
 
 // Helper Functions
-function getBackgroundColor() {
-    switch(currentLevel) {
-        case 1: return '#87CEEB';
-        case 2: return '#4A148C';
-        case 3: return '#87CEEB';
-        case 4: return '#8B0000';
-        default: return '#87CEEB';
-    }
-}
-
 function takeDamage() {
     if (player.invincible) return;
     
@@ -973,6 +1001,9 @@ function updateTimer() {
 function completeLevel() {
     levelComplete = true;
     
+    // Mark level as completed
+    levelCompleted[currentLevel] = true;
+    
     let collectiblesCount = collectibles.filter(c => c.collected).length;
     let totalCollectibles = collectibles.length;
     
@@ -991,6 +1022,9 @@ function gameOver() {
     document.getElementById('finalScore').textContent = `Score: ${score}`;
     document.getElementById('finalTime').textContent = `Time: ${document.getElementById('timerDisplay').textContent}`;
     document.getElementById('gameOver').classList.remove('hidden');
+    
+    // FIXED: Don't go to menu automatically - let player choose
+    // They can click "Try Again" or "Choose Realm"
 }
 
 // Audio Functions
