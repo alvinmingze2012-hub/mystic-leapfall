@@ -9,6 +9,7 @@ let startTime;
 let timerInterval;
 let levelComplete = false;
 let playerSpeed = 5; // FIXED - never changes
+let totalLevels = 15; // 15 levels total
 
 // Player Object
 let player = {
@@ -54,20 +55,34 @@ let keys = {
     q: false
 };
 
-// Level spawn points - each level spawns on a platform
-let spawnPoints = {
-    1: { x: 120, y: 330 }, // Spawn on first platform
-    2: { x: 120, y: 330 }, // Spawn on first platform
-    3: { x: 30, y: 330 },  // Spawn on first cloud platform
-    4: { x: 30, y: 330 }   // Spawn on first stone platform
-};
+// Level data storage
+let levelData = {};
 
 // Level completion status for checkmarks
-let levelCompleted = {
-    1: false,
-    2: false,
-    3: false,
-    4: false
+let levelCompleted = {};
+
+// Initialize level completed for 15 levels
+for (let i = 1; i <= totalLevels; i++) {
+    levelCompleted[i] = false;
+}
+
+// Level themes
+const themes = {
+    1: { name: 'Enchanted Forest', bg: '#87CEEB', platform: 'grass', difficulty: 'Easy' },
+    2: { name: 'Crystal Caverns', bg: '#4A148C', platform: 'crystal', difficulty: 'Easy' },
+    3: { name: 'Sky Fortress', bg: '#87CEEB', platform: 'cloud', difficulty: 'Easy' },
+    4: { name: 'Lava Depths', bg: '#8B0000', platform: 'stone', difficulty: 'Medium' },
+    5: { name: 'Frozen Peaks', bg: '#E0F2FE', platform: 'ice', difficulty: 'Medium' },
+    6: { name: 'Ancient Temple', bg: '#CD853F', platform: 'stone', difficulty: 'Medium' },
+    7: { name: 'Haunted Woods', bg: '#2D5A27', platform: 'wood', difficulty: 'Medium' },
+    8: { name: 'Desert Ruins', bg: '#F4A460', platform: 'sand', difficulty: 'Hard' },
+    9: { name: 'Storm Citadel', bg: '#483D8B', platform: 'stone', difficulty: 'Hard' },
+    10: { name: 'Magical Gardens', bg: '#98FB98', platform: 'grass', difficulty: 'Hard' },
+    11: { name: 'Dragon\'s Lair', bg: '#B22222', platform: 'stone', difficulty: 'Hard' },
+    12: { name: 'Celestial Realm', bg: '#191970', platform: 'cloud', difficulty: 'Expert' },
+    13: { name: 'Abyssal Depths', bg: '#000080', platform: 'crystal', difficulty: 'Expert' },
+    14: { name: 'Chrono Keep', bg: '#2F4F4F', platform: 'stone', difficulty: 'Expert' },
+    15: { name: 'Mystic Throne', bg: '#4B0082', platform: 'crystal', difficulty: 'Legendary' }
 };
 
 // Initialize Game
@@ -83,60 +98,192 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sfxVolume').addEventListener('input', updateSFXVolume);
     document.getElementById('musicVolume').addEventListener('input', updateMusicVolume);
     
+    // Generate all levels
+    generateAllLevels();
+    
     // Level selection cards
     setupLevelSelection();
     
-    // Game over buttons
+    // Game buttons
     setupGameButtons();
     
     // Start with main menu
     showMainMenu();
 });
 
-// Setup game buttons (Try Again, etc.)
-function setupGameButtons() {
-    // Try Again button in Game Over screen
-    const tryAgainBtn = document.querySelector('#gameOver button:first-child');
-    if (tryAgainBtn) {
-        tryAgainBtn.addEventListener('click', () => {
-            restartFromLevel1();
-        });
-    }
-    
-    // Restart Level button in Pause menu
-    const restartBtn = document.querySelector('#pauseMenu button:nth-child(2)');
-    if (restartBtn) {
-        restartBtn.addEventListener('click', () => {
-            restartCurrentLevel();
-        });
+// Generate all 15 levels
+function generateAllLevels() {
+    for (let level = 1; level <= totalLevels; level++) {
+        levelData[level] = generateLevel(level);
     }
 }
 
-// Setup level selection cards with checkmarks
+// Generate a single level with procedural design
+function generateLevel(level) {
+    const theme = themes[level];
+    const difficulty = level <= 3 ? 1 : level <= 6 ? 2 : level <= 10 ? 3 : level <= 13 ? 4 : 5;
+    
+    let platforms = [];
+    let collectibles = [];
+    let enemies = [];
+    
+    // Base platform (starting platform)
+    platforms.push({ 
+        x: 0, y: 350, width: 200, height: 20, 
+        texture: theme.platform 
+    });
+    
+    // Generate platforms based on level
+    let platformCount = 5 + difficulty * 2;
+    let lastX = 200;
+    let lastY = 350;
+    
+    for (let i = 0; i < platformCount; i++) {
+        let width = 80 + Math.floor(Math.random() * 70);
+        let gap = 80 + Math.floor(Math.random() * 50);
+        let yChange = (Math.random() > 0.5 ? -30 : 30) * difficulty;
+        
+        // Ensure platforms aren't too high or low
+        let newY = Math.max(150, Math.min(350, lastY + yChange));
+        
+        platforms.push({
+            x: lastX + gap,
+            y: newY,
+            width: width,
+            height: 20,
+            texture: theme.platform
+        });
+        
+        // Add collectibles on platforms
+        if (Math.random() > 0.4) {
+            collectibles.push({
+                x: lastX + gap + width / 2 - 10,
+                y: newY - 30,
+                width: 20,
+                height: 20,
+                collected: false,
+                type: Math.random() > 0.7 ? 'powerup' : 'coin',
+                value: Math.random() > 0.7 ? 100 : 50
+            });
+        }
+        
+        // Add enemies on platforms
+        if (Math.random() > 0.6) {
+            let enemyType = Math.random() > 0.5 ? 'walker' : 'stationary';
+            let enemySpeed = enemyType === 'walker' ? 1 + difficulty * 0.2 : 0;
+            
+            enemies.push({
+                x: lastX + gap + 20,
+                y: newY - 25,
+                width: 25,
+                height: 25,
+                speed: enemySpeed,
+                direction: 1,
+                type: enemyType,
+                patrolStart: lastX + gap,
+                patrolEnd: lastX + gap + width - 25,
+                platformY: newY,
+                originalY: newY - 25
+            });
+        }
+        
+        lastX = lastX + gap;
+        lastY = newY;
+    }
+    
+    // Final platform (level exit)
+    platforms.push({
+        x: lastX + 100,
+        y: 300,
+        width: 100,
+        height: 20,
+        texture: theme.platform,
+        isExit: true
+    });
+    
+    // Add special collectible at exit
+    collectibles.push({
+        x: lastX + 150,
+        y: 270,
+        width: 20,
+        height: 20,
+        collected: false,
+        type: 'shield',
+        value: 200
+    });
+    
+    return { platforms, collectibles, enemies };
+}
+
+// Setup level selection with dynamic grid
 function setupLevelSelection() {
-    const levelCards = document.querySelectorAll('.level-card');
-    levelCards.forEach((card, index) => {
-        const levelNum = index + 1;
+    const levelGrid = document.querySelector('.level-grid');
+    levelGrid.innerHTML = ''; // Clear existing
+    
+    // Create level cards for all 15 levels
+    for (let i = 1; i <= totalLevels; i++) {
+        const theme = themes[i];
+        const card = document.createElement('div');
+        card.className = 'level-card';
+        card.setAttribute('data-level', i);
+        
+        // Add preview with theme color
+        const preview = document.createElement('div');
+        preview.className = `level-preview ${theme.platform}`;
+        preview.style.background = `linear-gradient(135deg, ${theme.bg}, ${adjustColor(theme.bg, -30)})`;
+        
+        const title = document.createElement('h3');
+        title.textContent = theme.name;
+        
+        const desc = document.createElement('p');
+        desc.textContent = `Difficulty: ${theme.difficulty}`;
+        
+        const difficultySpan = document.createElement('span');
+        difficultySpan.className = `difficulty ${theme.difficulty.toLowerCase()}`;
+        difficultySpan.textContent = getDifficultyEmoji(theme.difficulty) + ' ' + theme.difficulty;
+        
+        // Checkmark for completed levels
+        const checkmark = document.createElement('div');
+        checkmark.className = 'checkmark';
+        checkmark.innerHTML = '✓';
+        checkmark.style.display = 'none';
+        
+        card.appendChild(preview);
+        card.appendChild(title);
+        card.appendChild(desc);
+        card.appendChild(difficultySpan);
+        card.appendChild(checkmark);
         
         // Add click handler
         card.addEventListener('click', () => {
             // Remove selected class from all cards
-            levelCards.forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
             // Add selected class to clicked card
             card.classList.add('selected');
             // Load the level
-            loadLevel(levelNum);
+            loadLevel(i);
         });
         
-        // Add checkmark element if not exists
-        if (!card.querySelector('.checkmark')) {
-            const checkmark = document.createElement('div');
-            checkmark.className = 'checkmark';
-            checkmark.innerHTML = '✓';
-            checkmark.style.display = 'none';
-            card.appendChild(checkmark);
-        }
-    });
+        levelGrid.appendChild(card);
+    }
+}
+
+// Helper function to adjust color brightness
+function adjustColor(color, percent) {
+    // Simple color adjustment for preview
+    return color;
+}
+
+// Get emoji for difficulty
+function getDifficultyEmoji(difficulty) {
+    switch(difficulty) {
+        case 'Easy': return '🌱';
+        case 'Medium': return '⭐';
+        case 'Hard': return '🔥';
+        case 'Expert': return '💀';
+        case 'Legendary': return '👑';
+        default: return '✨';
+    }
 }
 
 // Update level selection checkmarks
@@ -149,6 +296,27 @@ function updateLevelCheckmarks() {
             checkmark.style.display = levelCompleted[levelNum] ? 'block' : 'none';
         }
     });
+}
+
+// Setup game buttons
+function setupGameButtons() {
+    // Try Again button
+    const tryAgainBtn = document.querySelector('#gameOver button:first-child');
+    if (tryAgainBtn) {
+        tryAgainBtn.addEventListener('click', restartFromLevel1);
+    }
+    
+    // Restart Level button
+    const restartBtn = document.querySelector('#pauseMenu button:nth-child(2)');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartCurrentLevel);
+    }
+    
+    // Choose Realm button
+    const chooseRealmBtn = document.querySelector('#gameOver button:last-child');
+    if (chooseRealmBtn) {
+        chooseRealmBtn.addEventListener('click', showLevelSelect);
+    }
 }
 
 // Menu Navigation Functions
@@ -176,7 +344,7 @@ function showLevelSelect() {
     document.getElementById('pauseMenu').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
     document.getElementById('levelComplete').classList.add('hidden');
-    updateLevelCheckmarks(); // Update checkmarks when showing level select
+    updateLevelCheckmarks();
 }
 
 function showInstructions() {
@@ -208,20 +376,29 @@ function startGame() {
 function loadLevel(level) {
     currentLevel = level;
     resetGame();
-    loadLevelData(level);
+    
+    // Load level data
+    const levelInfo = levelData[level];
+    platforms = [...levelInfo.platforms];
+    collectibles = levelInfo.collectibles.map(c => ({...c, collected: false}));
+    enemies = levelInfo.enemies.map(e => ({...e}));
+    
+    // Set spawn point on first platform
+    const firstPlatform = platforms[0];
+    player.x = firstPlatform.x + 50;
+    player.y = firstPlatform.y - player.height;
+    
+    document.getElementById('levelNameDisplay').textContent = themes[level].name;
+    
     startGameLoop();
 }
 
 function resetGame() {
-    // Reset player speed to 5 (FIXED)
+    // Reset player speed to 5
     player.speed = 5;
-    
-    // Reset player to spawn point (ON a platform)
-    player.x = spawnPoints[currentLevel].x;
-    player.y = spawnPoints[currentLevel].y;
     player.velocityX = 0;
     player.velocityY = 0;
-    player.grounded = true; // Start grounded
+    player.grounded = true;
     player.canDoubleJump = true;
     player.invincible = false;
     player.hasShield = false;
@@ -245,134 +422,6 @@ function resetGame() {
     timerInterval = setInterval(updateTimer, 1000);
 }
 
-function loadLevelData(level) {
-    // Reset arrays
-    platforms = [];
-    collectibles = [];
-    enemies = [];
-    
-    switch(level) {
-        case 1: // Enchanted Forest
-            platforms = [
-                { x: 0, y: 350, width: 200, height: 20, texture: 'grass' },
-                { x: 250, y: 300, width: 150, height: 20, texture: 'grass' },
-                { x: 450, y: 250, width: 150, height: 20, texture: 'grass' },
-                { x: 650, y: 200, width: 150, height: 20, texture: 'grass' },
-                { x: 750, y: 150, width: 50, height: 20, texture: 'grass' }
-            ];
-            collectibles = [
-                { x: 150, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 350, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 550, y: 220, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
-                { x: 700, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 }
-            ];
-            // Enemies placed ON platforms
-            enemies = [
-                { x: 300, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
-                  patrolStart: 250, patrolEnd: 400, platformY: 300 }, // On second platform
-                { x: 500, y: 230, width: 25, height: 25, speed: 0, direction: 1, type: 'stationary',
-                  platformY: 250 } // Stationary on third platform
-            ];
-            spawnPoints[1] = { x: 120, y: 330 };
-            document.getElementById('levelNameDisplay').textContent = 'Enchanted Forest';
-            break;
-            
-        case 2: // Crystal Caverns
-            platforms = [
-                { x: 0, y: 350, width: 150, height: 20, texture: 'crystal' },
-                { x: 200, y: 300, width: 100, height: 20, texture: 'crystal' },
-                { x: 350, y: 250, width: 100, height: 20, texture: 'crystal' },
-                { x: 500, y: 200, width: 100, height: 20, texture: 'crystal' },
-                { x: 650, y: 250, width: 100, height: 20, texture: 'crystal' },
-                { x: 700, y: 300, width: 100, height: 20, texture: 'crystal' }
-            ];
-            collectibles = [
-                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 250, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 400, y: 220, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
-                { x: 550, y: 170, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 700, y: 220, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
-            ];
-            // Enemies placed ON platforms
-            enemies = [
-                { x: 250, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
-                  patrolStart: 200, patrolEnd: 300, platformY: 300 },
-                { x: 400, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
-                  patrolStart: 350, patrolEnd: 450, platformY: 250 },
-                { x: 600, y: 230, width: 25, height: 25, speed: 0, direction: 1, type: 'stationary',
-                  platformY: 250 }
-            ];
-            spawnPoints[2] = { x: 120, y: 330 };
-            document.getElementById('levelNameDisplay').textContent = 'Crystal Caverns';
-            break;
-            
-        case 3: // Sky Fortress
-            platforms = [
-                { x: 0, y: 350, width: 100, height: 20, texture: 'cloud' },
-                { x: 120, y: 300, width: 80, height: 20, texture: 'cloud' },
-                { x: 250, y: 250, width: 80, height: 20, texture: 'cloud' },
-                { x: 380, y: 200, width: 80, height: 20, texture: 'cloud' },
-                { x: 510, y: 150, width: 80, height: 20, texture: 'cloud' },
-                { x: 640, y: 200, width: 80, height: 20, texture: 'cloud' },
-                { x: 750, y: 250, width: 50, height: 20, texture: 'cloud' }
-            ];
-            collectibles = [
-                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 160, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 290, y: 220, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 420, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
-                { x: 550, y: 120, width: 20, height: 20, collected: false, type: 'shield', value: 150 },
-                { x: 680, y: 170, width: 20, height: 20, collected: false, type: 'doublejump', value: 150 }
-            ];
-            // Enemies placed ON platforms - no flying enemies
-            enemies = [
-                { x: 180, y: 280, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
-                  patrolStart: 120, patrolEnd: 220, platformY: 300 },
-                { x: 310, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
-                  patrolStart: 250, patrolEnd: 330, platformY: 250 },
-                { x: 440, y: 180, width: 25, height: 25, speed: 2, direction: 1, type: 'walker', 
-                  patrolStart: 380, patrolEnd: 500, platformY: 200 }
-            ];
-            spawnPoints[3] = { x: 30, y: 330 };
-            document.getElementById('levelNameDisplay').textContent = 'Sky Fortress';
-            break;
-            
-        case 4: // Lava Depths
-            platforms = [
-                { x: 0, y: 350, width: 120, height: 20, texture: 'stone' },
-                { x: 170, y: 300, width: 100, height: 20, texture: 'stone' },
-                { x: 320, y: 250, width: 100, height: 20, texture: 'stone' },
-                { x: 470, y: 200, width: 100, height: 20, texture: 'stone' },
-                { x: 620, y: 250, width: 100, height: 20, texture: 'stone' },
-                { x: 720, y: 300, width: 80, height: 20, texture: 'stone' }
-            ];
-            collectibles = [
-                { x: 50, y: 320, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 220, y: 270, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 370, y: 220, width: 20, height: 20, collected: false, type: 'coin', value: 50 },
-                { x: 520, y: 170, width: 20, height: 20, collected: false, type: 'powerup', value: 100 },
-                { x: 670, y: 220, width: 20, height: 20, collected: false, type: 'shield', value: 150 }
-            ];
-            // Enemies placed ON platforms
-            enemies = [
-                { x: 100, y: 330, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
-                  patrolStart: 50, patrolEnd: 150, platformY: 350 },
-                { x: 270, y: 280, width: 25, height: 25, speed: 0, direction: 1, type: 'stationary',
-                  platformY: 300 },
-                { x: 420, y: 230, width: 25, height: 25, speed: 1.5, direction: 1, type: 'walker', 
-                  patrolStart: 370, patrolEnd: 470, platformY: 250 },
-                { x: 570, y: 230, width: 25, height: 25, speed: 2, direction: 1, type: 'walker', 
-                  patrolStart: 520, patrolEnd: 620, platformY: 250 }
-            ];
-            spawnPoints[4] = { x: 30, y: 330 };
-            document.getElementById('levelNameDisplay').textContent = 'Lava Depths';
-            break;
-    }
-    
-    // Reset collectibles collected state
-    collectibles.forEach(c => c.collected = false);
-}
-
 function stopGame() {
     gameRunning = false;
     clearInterval(timerInterval);
@@ -389,39 +438,27 @@ function resumeGame() {
     document.getElementById('pauseMenu').classList.add('hidden');
 }
 
-// NEW FUNCTION: Restart from level 1 (for Try Again button)
 function restartFromLevel1() {
-    // Hide all menus
     document.getElementById('pauseMenu').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
     document.getElementById('levelComplete').classList.add('hidden');
-    
-    // Make sure game screen is visible
     document.getElementById('gameScreen').classList.remove('hidden');
-    
-    // Load level 1
     loadLevel(1);
 }
 
-// NEW FUNCTION: Restart current level (for Restart button in pause menu)
 function restartCurrentLevel() {
     document.getElementById('pauseMenu').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
     document.getElementById('levelComplete').classList.add('hidden');
-    resetGame();
-    loadLevelData(currentLevel);
-}
-
-// Keep original restartLevel for backward compatibility
-function restartLevel() {
-    restartCurrentLevel();
+    loadLevel(currentLevel);
 }
 
 function nextLevel() {
-    if (currentLevel < 4) {
+    if (currentLevel < totalLevels) {
         loadLevel(currentLevel + 1);
     } else {
-        // Game completed - show main menu
+        // Game completed - show congratulations
+        alert('Congratulations! You completed all levels! 🎉');
         showMainMenu();
     }
     document.getElementById('levelComplete').classList.add('hidden');
@@ -515,19 +552,19 @@ function gameLoop() {
 }
 
 function update() {
-    // FIXED: Always keep speed at 5
+    // Keep speed fixed at 5
     player.speed = 5;
     
     // Apply gravity
     player.velocityY += player.gravity;
     
-    // Horizontal movement - fixed speed
+    // Horizontal movement
     if (keys.left) {
         player.velocityX = -player.speed;
     } else if (keys.right) {
         player.velocityX = player.speed;
     } else {
-        player.velocityX *= 0.7; // Friction
+        player.velocityX *= 0.7;
     }
     
     // Jump
@@ -582,10 +619,19 @@ function update() {
         }
     }
     
-    // Enemy collision
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        let enemy = enemies[i];
+    // Update enemies
+    for (let enemy of enemies) {
+        if (enemy.type === 'walker') {
+            enemy.x += enemy.speed * enemy.direction;
+            
+            // Keep enemy on platform
+            if (enemy.x <= enemy.patrolStart || enemy.x + enemy.width >= enemy.patrolEnd) {
+                enemy.direction *= -1;
+            }
+        }
+        // Stationary enemies don't move
         
+        // Enemy collision
         if (!player.invincible &&
             player.x < enemy.x + enemy.width &&
             player.x + player.width > enemy.x &&
@@ -594,7 +640,7 @@ function update() {
             
             if (player.velocityY > 0 && player.y + player.height - player.velocityY <= enemy.y) {
                 // Player landed on enemy
-                enemies.splice(i, 1);
+                enemies = enemies.filter(e => e !== enemy);
                 player.velocityY = player.jumpPower / 2;
                 score += 100;
                 updateHUD();
@@ -603,20 +649,6 @@ function update() {
                 // Enemy hit player
                 takeDamage();
             }
-        }
-        
-        // Move enemies - they stay on their platform Y position
-        if (enemy.type === 'walker') {
-            enemy.x += enemy.speed * enemy.direction;
-            // Keep enemy on its platform Y
-            enemy.y = enemy.platformY - enemy.height;
-            
-            if (enemy.x <= enemy.patrolStart || enemy.x + enemy.width >= enemy.patrolEnd) {
-                enemy.direction *= -1;
-            }
-        } else if (enemy.type === 'stationary') {
-            // Stationary enemy - just sits there
-            enemy.y = enemy.platformY - enemy.height;
         }
     }
     
@@ -649,16 +681,21 @@ function update() {
         }
     }
     
-    // Check for level completion (reaching end of level)
-    if (player.x > canvas.width - 100) {
+    // Check for level completion
+    const exitPlatform = platforms.find(p => p.isExit);
+    if (exitPlatform && 
+        player.x > exitPlatform.x - 50 && 
+        player.x < exitPlatform.x + exitPlatform.width + 50) {
         completeLevel();
     }
     
-    // Check if player fell off - respawn at spawn point and take damage
+    // Check if player fell off
     if (player.y > canvas.height + 50) {
         takeDamage();
-        player.x = spawnPoints[currentLevel].x;
-        player.y = spawnPoints[currentLevel].y;
+        // Respawn on first platform
+        const firstPlatform = platforms[0];
+        player.x = firstPlatform.x + 50;
+        player.y = firstPlatform.y - player.height;
         player.velocityX = 0;
         player.velocityY = 0;
     }
@@ -672,46 +709,35 @@ function update() {
     }
 }
 
-// Enhanced drawing with better graphics
+// Drawing functions with enhanced graphics
 function draw() {
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw background with gradient and details
     drawBackground();
-    
-    // Draw platforms with textures
     drawPlatforms();
-    
-    // Draw collectibles with animations
     drawCollectibles();
-    
-    // Draw enemies with details
     drawEnemies();
-    
-    // Draw player with animations
     drawPlayer();
-    
-    // Draw particles and effects
     drawEffects();
 }
 
 function drawBackground() {
+    const theme = themes[currentLevel];
+    
     // Create gradient background
-    let gradient;
-    switch(currentLevel) {
-        case 1: // Enchanted Forest
-            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#87CEEB');
-            gradient.addColorStop(0.5, '#98D8E8');
-            gradient.addColorStop(1, '#5F9EA0');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+    let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, theme.bg);
+    gradient.addColorStop(1, adjustColor(theme.bg, -50));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add theme-specific decorations
+    switch(theme.platform) {
+        case 'grass':
             // Draw trees
             ctx.fillStyle = '#228B22';
-            for (let i = 0; i < 5; i++) {
-                let x = (i * 150) % canvas.width;
+            for (let i = 0; i < 3; i++) {
+                let x = (i * 250) % canvas.width;
                 ctx.fillRect(x, 200, 10, 150);
                 ctx.beginPath();
                 ctx.arc(x + 5, 190, 20, 0, Math.PI * 2);
@@ -720,17 +746,10 @@ function drawBackground() {
             }
             break;
             
-        case 2: // Crystal Caverns
-            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#4A148C');
-            gradient.addColorStop(0.5, '#7B1FA2');
-            gradient.addColorStop(1, '#311B92');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+        case 'crystal':
             // Draw crystals
-            for (let i = 0; i < 8; i++) {
-                let x = (i * 100) % canvas.width;
+            for (let i = 0; i < 5; i++) {
+                let x = (i * 150) % canvas.width;
                 ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.sin(Date.now() * 0.001 + i) * 0.05})`;
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
@@ -740,18 +759,11 @@ function drawBackground() {
             }
             break;
             
-        case 3: // Sky Fortress
-            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#87CEEB');
-            gradient.addColorStop(0.3, '#B0E0E6');
-            gradient.addColorStop(1, '#4682B4');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+        case 'cloud':
             // Draw clouds
             for (let i = 0; i < 3; i++) {
                 let x = (i * 200 + Date.now() * 0.02) % (canvas.width + 200) - 100;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                 ctx.beginPath();
                 ctx.arc(x, 50, 30, 0, Math.PI * 2);
                 ctx.arc(x + 40, 50, 25, 0, Math.PI * 2);
@@ -760,22 +772,23 @@ function drawBackground() {
             }
             break;
             
-        case 4: // Lava Depths
-            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#8B0000');
-            gradient.addColorStop(0.5, '#B22222');
-            gradient.addColorStop(1, '#DC143C');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw lava bubbles
+        case 'ice':
+            // Draw snowflakes
             for (let i = 0; i < 10; i++) {
                 let x = (i * 80 + Date.now() * 0.01) % canvas.width;
-                let y = canvas.height - 30 + Math.sin(Date.now() * 0.002 + i) * 10;
-                ctx.fillStyle = `rgba(255, 140, 0, ${0.3 + Math.sin(Date.now() * 0.003 + i) * 0.2})`;
+                let y = (i * 50) % canvas.height;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                 ctx.beginPath();
-                ctx.arc(x, y, 5 + Math.sin(Date.now() * 0.001 + i) * 2, 0, Math.PI * 2);
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
                 ctx.fill();
+            }
+            break;
+            
+        case 'sand':
+            // Draw sand particles
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
+            for (let i = 0; i < 20; i++) {
+                ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 2, 2);
             }
             break;
     }
@@ -784,43 +797,47 @@ function drawBackground() {
 function drawPlatforms() {
     for (let platform of platforms) {
         // Platform base
-        ctx.fillStyle = platform.texture === 'grass' ? '#8B4513' : 
-                       platform.texture === 'crystal' ? '#4A148C' :
-                       platform.texture === 'cloud' ? '#FFFFFF' : '#555555';
+        let baseColor;
+        switch(platform.texture) {
+            case 'grass': baseColor = '#8B4513'; break;
+            case 'crystal': baseColor = '#4A148C'; break;
+            case 'cloud': baseColor = '#FFFFFF'; break;
+            case 'ice': baseColor = '#E0F2FE'; break;
+            case 'sand': baseColor = '#F4A460'; break;
+            case 'wood': baseColor = '#8B4513'; break;
+            default: baseColor = '#555555';
+        }
+        
+        ctx.fillStyle = baseColor;
         ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
         
         // Platform top
-        ctx.fillStyle = platform.texture === 'grass' ? '#32CD32' : 
-                       platform.texture === 'crystal' ? '#E1BEE7' :
-                       platform.texture === 'cloud' ? '#F0F8FF' : '#888888';
+        let topColor;
+        switch(platform.texture) {
+            case 'grass': topColor = '#32CD32'; break;
+            case 'crystal': topColor = '#E1BEE7'; break;
+            case 'cloud': topColor = '#F0F8FF'; break;
+            case 'ice': topColor = '#FFFFFF'; break;
+            case 'sand': topColor = '#FFE4B5'; break;
+            case 'wood': topColor = '#DEB887'; break;
+            default: topColor = '#888888';
+        }
+        
+        ctx.fillStyle = topColor;
         ctx.fillRect(platform.x, platform.y - 3, platform.width, 5);
         
         // Platform edge highlights
         ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.fillRect(platform.x, platform.y - 2, platform.width, 2);
         
-        // Platform bottom shadow
+        // Platform shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.fillRect(platform.x, platform.y + platform.height, platform.width, 3);
         
-        // Add texture details
-        if (platform.texture === 'grass') {
-            for (let i = 0; i < 3; i++) {
-                ctx.fillStyle = '#228B22';
-                ctx.fillRect(platform.x + i * 40 + 10, platform.y - 8, 5, 8);
-            }
-        } else if (platform.texture === 'crystal') {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            for (let i = 0; i < platform.width / 20; i++) {
-                ctx.fillRect(platform.x + i * 20 + 5, platform.y - 2, 2, 5);
-            }
-        } else if (platform.texture === 'cloud') {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            for (let i = 0; i < 3; i++) {
-                ctx.beginPath();
-                ctx.arc(platform.x + i * 30 + 10, platform.y - 5, 8, 0, Math.PI * 2);
-                ctx.fill();
-            }
+        // Add platform-specific details
+        if (platform.isExit) {
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+            ctx.fillRect(platform.x, platform.y - 10, platform.width, 5);
         }
     }
 }
@@ -831,13 +848,11 @@ function drawCollectibles() {
             let bounce = Math.sin(Date.now() * 0.005 + item.x) * 3;
             let y = item.y + bounce;
             
+            ctx.save();
+            
             if (item.type === 'coin') {
-                // Animated coin
-                ctx.save();
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = 'gold';
-                
-                // Coin body
                 ctx.fillStyle = 'gold';
                 ctx.beginPath();
                 ctx.arc(item.x + item.width/2, y + item.height/2, item.width/2, 0, Math.PI * 2);
@@ -848,29 +863,15 @@ function drawCollectibles() {
                 ctx.beginPath();
                 ctx.arc(item.x + item.width/3, y + item.height/3, 3, 0, Math.PI * 2);
                 ctx.fill();
-                
-                // Coin symbol
-                ctx.fillStyle = '#B8860B';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('⭐', item.x + item.width/2, y + item.height/2);
-                
-                ctx.restore();
-                
             } else {
-                // Powerup with glow
-                ctx.save();
                 ctx.shadowBlur = 20;
                 ctx.shadowColor = item.type === 'powerup' ? 'purple' : 
                                  item.type === 'doublejump' ? 'cyan' : 'blue';
                 
-                // Powerup body
                 ctx.fillStyle = item.type === 'powerup' ? '#9C27B0' : 
                                item.type === 'doublejump' ? '#00BCD4' : '#2196F3';
                 ctx.fillRect(item.x, y, item.width, item.height);
                 
-                // Powerup symbol
                 ctx.fillStyle = 'white';
                 ctx.font = '12px Arial';
                 ctx.textAlign = 'center';
@@ -878,14 +879,9 @@ function drawCollectibles() {
                 let symbol = item.type === 'powerup' ? '✨' : 
                             item.type === 'doublejump' ? '🦶' : '🛡️';
                 ctx.fillText(symbol, item.x + item.width/2, y + item.height/2);
-                
-                // Powerup glow pulse
-                ctx.shadowBlur = 10 + Math.sin(Date.now() * 0.005) * 5;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.fillRect(item.x - 2, y - 2, item.width + 4, item.height + 4);
-                
-                ctx.restore();
             }
+            
+            ctx.restore();
         }
     }
 }
@@ -901,7 +897,7 @@ function drawEnemies() {
         ctx.fillRect(enemy.x + 5, enemy.y + 5, 5, 5);
         ctx.fillRect(enemy.x + 15, enemy.y + 5, 5, 5);
         
-        // Enemy pupils (follow player)
+        // Enemy pupils
         let pupilOffsetX = (player.x - enemy.x) * 0.02;
         pupilOffsetX = Math.max(-2, Math.min(2, pupilOffsetX));
         
@@ -909,12 +905,7 @@ function drawEnemies() {
         ctx.fillRect(enemy.x + 6 + pupilOffsetX, enemy.y + 6, 3, 3);
         ctx.fillRect(enemy.x + 16 + pupilOffsetX, enemy.y + 6, 3, 3);
         
-        // Enemy mouth/teeth
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.fillRect(enemy.x + 10, enemy.y + 15, 2, 3);
-        ctx.fillRect(enemy.x + 13, enemy.y + 15, 2, 3);
-        
-        // Enemy shadow on platform
+        // Enemy shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.fillRect(enemy.x - 2, enemy.y + enemy.height, enemy.width + 4, 3);
     }
@@ -925,15 +916,12 @@ function drawPlayer() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
     ctx.fillRect(player.x - 5, player.y + player.height, player.width + 10, 5);
     
-    // Player body with invincibility effect
-    if (player.invincible) {
-        ctx.fillStyle = `rgba(255, 255, 0, ${0.5 + Math.sin(Date.now() * 0.02) * 0.3})`;
-    } else {
-        ctx.fillStyle = '#2196F3';
-    }
+    // Player body
+    ctx.fillStyle = player.invincible ? 
+        `rgba(255, 255, 0, ${0.5 + Math.sin(Date.now() * 0.02) * 0.3})` : '#2196F3';
     ctx.fillRect(player.x, player.y, player.width, player.height);
     
-    // Player cape if has powerups
+    // Cape
     if (powerups.doubleJump || powerups.dash || powerups.shield || player.hasShield) {
         ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
         ctx.beginPath();
@@ -941,31 +929,20 @@ function drawPlayer() {
         ctx.lineTo(player.x + player.width + 20, player.y + player.height/2);
         ctx.lineTo(player.x + player.width, player.y + player.height);
         ctx.fill();
-        
-        // Cape sparkles
-        for (let i = 0; i < 3; i++) {
-            ctx.fillStyle = `rgba(255, 215, 0, ${0.5 + Math.sin(Date.now() * 0.01 + i) * 0.3})`;
-            ctx.beginPath();
-            ctx.arc(player.x + player.width + 10, player.y + player.height/2 - 5 + i * 10, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
     }
     
-    // Player eyes
+    // Eyes
     ctx.fillStyle = 'white';
     ctx.fillRect(player.x + 5, player.y + 5, 5, 5);
     ctx.fillRect(player.x + 20, player.y + 5, 5, 5);
     
-    // Player pupils (look in movement direction)
-    let pupilOffset = 0;
-    if (player.velocityX > 0) pupilOffset = 1;
-    if (player.velocityX < 0) pupilOffset = -1;
-    
+    // Pupils
+    let pupilOffset = player.velocityX > 0 ? 1 : player.velocityX < 0 ? -1 : 0;
     ctx.fillStyle = 'black';
     ctx.fillRect(player.x + 6 + pupilOffset, player.y + 6, 3, 3);
     ctx.fillRect(player.x + 21 + pupilOffset, player.y + 6, 3, 3);
     
-    // Player hat
+    // Hat
     ctx.fillStyle = '#FF5722';
     ctx.fillRect(player.x + 5, player.y - 5, 20, 5);
     ctx.fillRect(player.x + 10, player.y - 10, 10, 5);
@@ -1058,27 +1035,26 @@ function updateTimer() {
 
 function completeLevel() {
     levelComplete = true;
-    
-    // Mark level as completed
     levelCompleted[currentLevel] = true;
     
     let collectiblesCount = collectibles.filter(c => c.collected).length;
     let totalCollectibles = collectibles.length;
     
     document.getElementById('levelScore').textContent = `Score: ${score}`;
-    document.getElementById('levelTime').textContent = `Time: ${document.getElementById('timerDisplay').textContent}`;
+    document.getElementById('levelTime').textContent = document.getElementById('timerDisplay').textContent;
     document.getElementById('collectiblesFound').textContent = `Collectibles: ${collectiblesCount}/${totalCollectibles}`;
     
     document.getElementById('levelComplete').classList.remove('hidden');
     
     score += collectiblesCount * 100;
     updateHUD();
+    updateLevelCheckmarks();
 }
 
 function gameOver() {
     gameRunning = false;
     document.getElementById('finalScore').textContent = `Score: ${score}`;
-    document.getElementById('finalTime').textContent = `Time: ${document.getElementById('timerDisplay').textContent}`;
+    document.getElementById('finalTime').textContent = document.getElementById('timerDisplay').textContent;
     document.getElementById('gameOver').classList.remove('hidden');
 }
 
