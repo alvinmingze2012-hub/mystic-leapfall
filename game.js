@@ -98,10 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sfxVolume').addEventListener('input', updateSFXVolume);
     document.getElementById('musicVolume').addEventListener('input', updateMusicVolume);
     
-    // Generate all levels
+    // Generate all levels FIRST
     generateAllLevels();
     
-    // Level selection cards
+    // Then setup level selection
     setupLevelSelection();
     
     // Game buttons
@@ -113,24 +113,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Generate all 15 levels
 function generateAllLevels() {
+    console.log("Generating all levels..."); // Debug log
     for (let level = 1; level <= totalLevels; level++) {
         levelData[level] = generateLevel(level);
+        console.log(`Level ${level} generated with ${levelData[level].platforms.length} platforms`); // Debug log
     }
 }
 
 // Generate a single level with procedural design
 function generateLevel(level) {
     const theme = themes[level];
+    // Fix: Make sure theme exists
+    if (!theme) {
+        console.error(`Theme not found for level ${level}`);
+        return { platforms: [], collectibles: [], enemies: [] };
+    }
+    
     const difficulty = level <= 3 ? 1 : level <= 6 ? 2 : level <= 10 ? 3 : level <= 13 ? 4 : 5;
     
     let platforms = [];
     let collectibles = [];
     let enemies = [];
     
-    // Base platform (starting platform)
+    // Base platform (starting platform) - ENSURE THIS IS CREATED
     platforms.push({ 
         x: 0, y: 350, width: 200, height: 20, 
-        texture: theme.platform 
+        texture: theme.platform,
+        isStart: true 
     });
     
     // Generate platforms based on level
@@ -146,54 +155,59 @@ function generateLevel(level) {
         // Ensure platforms aren't too high or low
         let newY = Math.max(150, Math.min(350, lastY + yChange));
         
-        platforms.push({
-            x: lastX + gap,
-            y: newY,
-            width: width,
-            height: 20,
-            texture: theme.platform
-        });
+        let platformX = lastX + gap;
         
-        // Add collectibles on platforms
-        if (Math.random() > 0.4) {
-            collectibles.push({
-                x: lastX + gap + width / 2 - 10,
-                y: newY - 30,
-                width: 20,
+        // Make sure platform is within canvas
+        if (platformX + width < 800) {
+            platforms.push({
+                x: platformX,
+                y: newY,
+                width: width,
                 height: 20,
-                collected: false,
-                type: Math.random() > 0.7 ? 'powerup' : 'coin',
-                value: Math.random() > 0.7 ? 100 : 50
+                texture: theme.platform
             });
-        }
-        
-        // Add enemies on platforms
-        if (Math.random() > 0.6) {
-            let enemyType = Math.random() > 0.5 ? 'walker' : 'stationary';
-            let enemySpeed = enemyType === 'walker' ? 1 + difficulty * 0.2 : 0;
             
-            enemies.push({
-                x: lastX + gap + 20,
-                y: newY - 25,
-                width: 25,
-                height: 25,
-                speed: enemySpeed,
-                direction: 1,
-                type: enemyType,
-                patrolStart: lastX + gap,
-                patrolEnd: lastX + gap + width - 25,
-                platformY: newY,
-                originalY: newY - 25
-            });
+            // Add collectibles on platforms
+            if (Math.random() > 0.4) {
+                collectibles.push({
+                    x: platformX + width / 2 - 10,
+                    y: newY - 30,
+                    width: 20,
+                    height: 20,
+                    collected: false,
+                    type: Math.random() > 0.7 ? 'powerup' : 'coin',
+                    value: Math.random() > 0.7 ? 100 : 50
+                });
+            }
+            
+            // Add enemies on platforms
+            if (Math.random() > 0.6) {
+                let enemyType = Math.random() > 0.5 ? 'walker' : 'stationary';
+                let enemySpeed = enemyType === 'walker' ? 1 + difficulty * 0.2 : 0;
+                
+                enemies.push({
+                    x: platformX + 20,
+                    y: newY - 25,
+                    width: 25,
+                    height: 25,
+                    speed: enemySpeed,
+                    direction: 1,
+                    type: enemyType,
+                    patrolStart: platformX,
+                    patrolEnd: platformX + width - 25,
+                    platformY: newY
+                });
+            }
+            
+            lastX = platformX;
+            lastY = newY;
         }
-        
-        lastX = lastX + gap;
-        lastY = newY;
     }
     
-    // Final platform (level exit)
+    // Final platform (level exit) - ENSURE THIS IS WITHIN CANVAS
+    let exitX = Math.min(lastX + 100, 700);
     platforms.push({
-        x: lastX + 100,
+        x: exitX,
         y: 300,
         width: 100,
         height: 20,
@@ -202,15 +216,35 @@ function generateLevel(level) {
     });
     
     // Add special collectible at exit
-    collectibles.push({
-        x: lastX + 150,
-        y: 270,
-        width: 20,
-        height: 20,
-        collected: false,
-        type: 'shield',
-        value: 200
-    });
+    if (exitX + 150 < 800) {
+        collectibles.push({
+            x: exitX + 50,
+            y: 270,
+            width: 20,
+            height: 20,
+            collected: false,
+            type: 'shield',
+            value: 200
+        });
+    }
+    
+    // Add some floating collectibles in hard levels
+    if (difficulty >= 3) {
+        for (let i = 0; i < difficulty; i++) {
+            if (platforms.length > i + 1) {
+                let p = platforms[i + 1];
+                collectibles.push({
+                    x: p.x + 30,
+                    y: p.y - 60,
+                    width: 20,
+                    height: 20,
+                    collected: false,
+                    type: 'doublejump',
+                    value: 150
+                });
+            }
+        }
+    }
     
     return { platforms, collectibles, enemies };
 }
@@ -218,11 +252,18 @@ function generateLevel(level) {
 // Setup level selection with dynamic grid
 function setupLevelSelection() {
     const levelGrid = document.querySelector('.level-grid');
+    if (!levelGrid) {
+        console.error("Level grid not found!");
+        return;
+    }
+    
     levelGrid.innerHTML = ''; // Clear existing
     
     // Create level cards for all 15 levels
     for (let i = 1; i <= totalLevels; i++) {
         const theme = themes[i];
+        if (!theme) continue;
+        
         const card = document.createElement('div');
         card.className = 'level-card';
         card.setAttribute('data-level', i);
@@ -374,21 +415,42 @@ function startGame() {
 }
 
 function loadLevel(level) {
+    console.log(`Loading level ${level}`); // Debug log
+    
     currentLevel = level;
     resetGame();
     
+    // Check if level data exists
+    if (!levelData[level]) {
+        console.error(`Level ${level} data not found, generating now...`);
+        levelData[level] = generateLevel(level);
+    }
+    
     // Load level data
     const levelInfo = levelData[level];
-    platforms = [...levelInfo.platforms];
+    
+    // Make deep copies to avoid reference issues
+    platforms = levelInfo.platforms.map(p => ({...p}));
     collectibles = levelInfo.collectibles.map(c => ({...c, collected: false}));
     enemies = levelInfo.enemies.map(e => ({...e}));
     
-    // Set spawn point on first platform
-    const firstPlatform = platforms[0];
-    player.x = firstPlatform.x + 50;
-    player.y = firstPlatform.y - player.height;
+    console.log(`Loaded ${platforms.length} platforms, ${collectibles.length} collectibles, ${enemies.length} enemies`); // Debug log
     
-    document.getElementById('levelNameDisplay').textContent = themes[level].name;
+    // Set spawn point on first platform
+    if (platforms.length > 0) {
+        const firstPlatform = platforms[0];
+        player.x = firstPlatform.x + 50;
+        player.y = firstPlatform.y - player.height;
+        console.log(`Spawn point set to (${player.x}, ${player.y})`); // Debug log
+    } else {
+        console.error("No platforms found for level!");
+        // Fallback platform
+        platforms = [{ x: 0, y: 350, width: 200, height: 20, texture: 'grass' }];
+        player.x = 100;
+        player.y = 330;
+    }
+    
+    document.getElementById('levelNameDisplay').textContent = themes[level]?.name || `Level ${level}`;
     
     startGameLoop();
 }
@@ -629,7 +691,6 @@ function update() {
                 enemy.direction *= -1;
             }
         }
-        // Stationary enemies don't move
         
         // Enemy collision
         if (!player.invincible &&
@@ -645,6 +706,7 @@ function update() {
                 score += 100;
                 updateHUD();
                 playSound('powerupSound');
+                break;
             } else {
                 // Enemy hit player
                 takeDamage();
@@ -693,9 +755,14 @@ function update() {
     if (player.y > canvas.height + 50) {
         takeDamage();
         // Respawn on first platform
-        const firstPlatform = platforms[0];
-        player.x = firstPlatform.x + 50;
-        player.y = firstPlatform.y - player.height;
+        if (platforms.length > 0) {
+            const firstPlatform = platforms[0];
+            player.x = firstPlatform.x + 50;
+            player.y = firstPlatform.y - player.height;
+        } else {
+            player.x = 100;
+            player.y = 300;
+        }
         player.velocityX = 0;
         player.velocityY = 0;
     }
@@ -722,7 +789,7 @@ function draw() {
 }
 
 function drawBackground() {
-    const theme = themes[currentLevel];
+    const theme = themes[currentLevel] || themes[1];
     
     // Create gradient background
     let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -791,6 +858,24 @@ function drawBackground() {
                 ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 2, 2);
             }
             break;
+            
+        case 'wood':
+            // Draw leaves
+            ctx.fillStyle = 'rgba(0, 100, 0, 0.1)';
+            for (let i = 0; i < 15; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+            
+        case 'stone':
+            // Draw rock particles
+            ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
+            for (let i = 0; i < 15; i++) {
+                ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 3, 3);
+            }
+            break;
     }
 }
 
@@ -805,6 +890,7 @@ function drawPlatforms() {
             case 'ice': baseColor = '#E0F2FE'; break;
             case 'sand': baseColor = '#F4A460'; break;
             case 'wood': baseColor = '#8B4513'; break;
+            case 'stone': baseColor = '#555555'; break;
             default: baseColor = '#555555';
         }
         
@@ -820,6 +906,7 @@ function drawPlatforms() {
             case 'ice': topColor = '#FFFFFF'; break;
             case 'sand': topColor = '#FFE4B5'; break;
             case 'wood': topColor = '#DEB887'; break;
+            case 'stone': topColor = '#888888'; break;
             default: topColor = '#888888';
         }
         
@@ -838,6 +925,10 @@ function drawPlatforms() {
         if (platform.isExit) {
             ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
             ctx.fillRect(platform.x, platform.y - 10, platform.width, 5);
+        }
+        if (platform.isStart) {
+            ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+            ctx.fillRect(platform.x, platform.y - 5, platform.width, 3);
         }
     }
 }
